@@ -1,41 +1,43 @@
+using Hangfire;
+using Hangfire.MemoryStorage;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddOpenApi();
+//builder.Services.AddOpenApi();
+
+builder.Services.AddHttpClient();
+
+builder.Services.AddSingleton<NewsService>();
+builder.Services.AddSingleton<OllamaService>();
+builder.Services.AddSingleton<TelegramService>();
+builder.Services.AddTransient<DailyJob>();
+
+builder.Services.AddHangfire(x => x.UseMemoryStorage());
+builder.Services.AddHangfireServer();
+builder.Services.AddSingleton<OllamaService>();
+//builder.Services.AddSingleton<OpenAIService>();
+builder.Services.AddSingleton<SmartAIService>();
+
+
+builder.Services.AddControllers();
 
 var app = builder.Build();
-
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
 }
+app.UseHangfireDashboard();
 
+// ⏰ Daily at 9 AM
+RecurringJob.AddOrUpdate<DailyJob>(
+    "daily-job",
+    job => job.Run(),
+    "0 9 * * *");
+
+app.MapControllers();
 app.UseHttpsRedirection();
-
-var summaries = new[]
-{
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
-
-app.MapGet("/weatherforecast", () =>
-{
-    var forecast =  Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
-})
-.WithName("GetWeatherForecast");
 
 app.Run();
 
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}
+//Hangfire Dashboard : http://localhost:5049/hangfire
+// to get the ChatID : https://api.telegram.org/bot8695096801:AAEaPBZk31Jo17ryTOGXyAzdPCZadMLIho8/getUpdates
