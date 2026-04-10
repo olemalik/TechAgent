@@ -1,11 +1,35 @@
 {
   "version": 2,
-  "dgSpecHash": "+QcXINUArjM=",
+  "dgSpecHash": "EjoimtPH/hw=",
   "success": true,
   "projectFilePath": "/Users/malikahmed/Projects/AI/Chat/TechAgent/TechAgent.csproj",
   "expectedPackageFiles": [
+    "/Users/malikahmed/.nuget/packages/hangfire/1.8.23/hangfire.1.8.23.nupkg.sha512",
+    "/Users/malikahmed/.nuget/packages/hangfire.aspnetcore/1.8.23/hangfire.aspnetcore.1.8.23.nupkg.sha512",
+    "/Users/malikahmed/.nuget/packages/hangfire.core/1.8.23/hangfire.core.1.8.23.nupkg.sha512",
+    "/Users/malikahmed/.nuget/packages/hangfire.memorystorage/1.8.1.2/hangfire.memorystorage.1.8.1.2.nupkg.sha512",
+    "/Users/malikahmed/.nuget/packages/hangfire.netcore/1.8.23/hangfire.netcore.1.8.23.nupkg.sha512",
+    "/Users/malikahmed/.nuget/packages/hangfire.sqlserver/1.8.23/hangfire.sqlserver.1.8.23.nupkg.sha512",
     "/Users/malikahmed/.nuget/packages/microsoft.aspnetcore.openapi/9.0.9/microsoft.aspnetcore.openapi.9.0.9.nupkg.sha512",
-    "/Users/malikahmed/.nuget/packages/microsoft.openapi/1.6.17/microsoft.openapi.1.6.17.nupkg.sha512"
+    "/Users/malikahmed/.nuget/packages/microsoft.extensions.configuration.abstractions/10.0.3/microsoft.extensions.configuration.abstractions.10.0.3.nupkg.sha512",
+    "/Users/malikahmed/.nuget/packages/microsoft.extensions.dependencyinjection.abstractions/10.0.3/microsoft.extensions.dependencyinjection.abstractions.10.0.3.nupkg.sha512",
+    "/Users/malikahmed/.nuget/packages/microsoft.extensions.diagnostics.abstractions/10.0.3/microsoft.extensions.diagnostics.abstractions.10.0.3.nupkg.sha512",
+    "/Users/malikahmed/.nuget/packages/microsoft.extensions.fileproviders.abstractions/10.0.3/microsoft.extensions.fileproviders.abstractions.10.0.3.nupkg.sha512",
+    "/Users/malikahmed/.nuget/packages/microsoft.extensions.hosting.abstractions/10.0.3/microsoft.extensions.hosting.abstractions.10.0.3.nupkg.sha512",
+    "/Users/malikahmed/.nuget/packages/microsoft.extensions.logging.abstractions/10.0.3/microsoft.extensions.logging.abstractions.10.0.3.nupkg.sha512",
+    "/Users/malikahmed/.nuget/packages/microsoft.extensions.options/10.0.3/microsoft.extensions.options.10.0.3.nupkg.sha512",
+    "/Users/malikahmed/.nuget/packages/microsoft.extensions.primitives/10.0.3/microsoft.extensions.primitives.10.0.3.nupkg.sha512",
+    "/Users/malikahmed/.nuget/packages/microsoft.openapi/1.6.17/microsoft.openapi.1.6.17.nupkg.sha512",
+    "/Users/malikahmed/.nuget/packages/newtonsoft.json/11.0.1/newtonsoft.json.11.0.1.nupkg.sha512",
+    "/Users/malikahmed/.nuget/packages/openai/2.10.0/openai.2.10.0.nupkg.sha512",
+    "/Users/malikahmed/.nuget/packages/system.clientmodel/1.10.0/system.clientmodel.1.10.0.nupkg.sha512",
+    "/Users/malikahmed/.nuget/packages/system.diagnostics.diagnosticsource/10.0.3/system.diagnostics.diagnosticsource.10.0.3.nupkg.sha512",
+    "/Users/malikahmed/.nuget/packages/system.io.pipelines/10.0.3/system.io.pipelines.10.0.3.nupkg.sha512",
+    "/Users/malikahmed/.nuget/packages/system.memory.data/10.0.3/system.memory.data.10.0.3.nupkg.sha512",
+    "/Users/malikahmed/.nuget/packages/system.net.serversentevents/10.0.2/system.net.serversentevents.10.0.2.nupkg.sha512",
+    "/Users/malikahmed/.nuget/packages/system.servicemodel.syndication/10.0.5/system.servicemodel.syndication.10.0.5.nupkg.sha512",
+    "/Users/malikahmed/.nuget/packages/system.text.encodings.web/10.0.3/system.text.encodings.web.10.0.3.nupkg.sha512",
+    "/Users/malikahmed/.nuget/packages/system.text.json/10.0.3/system.text.json.10.0.3.nupkg.sha512"
   ],
   "logs": []
 }
