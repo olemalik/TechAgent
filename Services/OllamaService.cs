@@ -9,7 +9,7 @@ public class OllamaService
     public OllamaService(HttpClient httpClient, IConfiguration config)
     {
         _httpClient = httpClient;
-        _httpClient.Timeout = Timeout.InfiniteTimeSpan;//TimeSpan.FromSeconds(10);
+        _httpClient.Timeout = Timeout.InfiniteTimeSpan;
         _config = config;
     }
 
@@ -96,7 +96,7 @@ public class OllamaService
             try
             {
                 var json = JsonDocument.Parse(line);
-                chunk = json.RootElement.GetProperty("response").GetString();
+                chunk = json?.RootElement.GetProperty("response").GetString();
             }
             catch
             {
