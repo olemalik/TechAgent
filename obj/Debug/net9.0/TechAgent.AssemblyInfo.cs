@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("TechAgent")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+08e48580a7966a8091d44d33e0f65a07d3a419cf")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+95c3cfcd563f108b9434c13f7511dd0bf7e93751")]
 [assembly: System.Reflection.AssemblyProductAttribute("TechAgent")]
 [assembly: System.Reflection.AssemblyTitleAttribute("TechAgent")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

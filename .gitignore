@@ -168,3 +168,7 @@ obj/Debug/net9.0/TechAgent.assets.cache
 obj/Debug/net9.0/TechAgent.AssemblyInfoInputs.cache
 obj/Debug/net9.0/TechAgent.AssemblyInfo.cs
 obj/project.nuget.cache
+bin/Debug/net9.0/appsettings.Development.json
+.zshrcx.zshrcx
+.DS_Store
+appsettings.Development.json

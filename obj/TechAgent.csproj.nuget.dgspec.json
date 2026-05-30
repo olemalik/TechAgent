@@ -44,6 +44,10 @@
         "net9.0": {
           "targetAlias": "net9.0",
           "dependencies": {
+            "Anthropic.SDK": {
+              "target": "Package",
+              "version": "[5.10.0, )"
+            },
             "Hangfire": {
               "target": "Package",
               "version": "[1.8.23, )"

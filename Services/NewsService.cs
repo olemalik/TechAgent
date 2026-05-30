@@ -132,4 +132,18 @@ public class NewsService
 
         return message;
     }
+
+    // Simple helper to store an externally provided news item (e.g., from Telegram)
+    public async Task AddSentNewsAsync(string title, string? link = null, string? hash = null)
+    {
+        _db.SentNews.Add(new SentNews
+        {
+            Title = title,
+            Link = link,
+            Hash = hash,
+            SentDate = DateTime.UtcNow
+        });
+
+        await _db.SaveChangesAsync();
+    }
 }

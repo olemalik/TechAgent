@@ -11,6 +11,8 @@ public class TelegramController : ControllerBase
     public TelegramController(TelegramService telegram, DailyJob job)
     {
         _telegram = telegram;
+        _job = job;
+
     }
 
     [HttpGet("run")]

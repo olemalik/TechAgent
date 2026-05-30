@@ -15,13 +15,14 @@ builder.Services.AddHttpClient();
 
 builder.Services.AddScoped<NewsService>();
 builder.Services.AddHttpClient<OllamaService>();
-builder.Services.AddSingleton<TelegramService>();
+builder.Services.AddTransient<TelegramService>();
 builder.Services.AddTransient<DailyJob>();
 
 builder.Services.AddHangfire(x => x.UseMemoryStorage());
 builder.Services.AddHangfireServer();
 //builder.Services.AddSingleton<OpenAIService>();
 // SmartAIService should be transient to avoid lifetime issues with typed HttpClient
+builder.Services.AddTransient<ClaudeService>();
 builder.Services.AddTransient<SmartAIService>();
 
 
