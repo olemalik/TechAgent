@@ -10,6 +10,8 @@
     <PackageReference Include="Anthropic.SDK" Version="5.10.0" />
     <PackageReference Include="Hangfire" Version="1.8.23" />
     <PackageReference Include="Hangfire.MemoryStorage" Version="1.8.1.2" />
+    <PackageReference Include="HotChocolate.AspNetCore" Version="16.0.9" />
+    <PackageReference Include="HotChocolate.Data" Version="16.0.9" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.9" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.0">
@@ -23,6 +25,14 @@
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.0" />
     <PackageReference Include="OpenAI" Version="2.10.0" />
     <PackageReference Include="System.ServiceModel.Syndication" Version="10.0.5" />
+    <!-- ── NEW: RAG + Vector DB + PDF + Caching ──────────────────────────── -->
+    <!-- Qdrant vector database client (gRPC, port 6334) -->
+    <PackageReference Include="Qdrant.Client" Version="1.12.0" />
+    <!-- PDF text extraction (text-layer PDFs only; not scanned/image PDFs) -->
+    <PackageReference Include="PdfPig" Version="0.1.9" />
+    <!-- .NET 9 GA cache with stampede protection + optional Redis L2 -->
+    <PackageReference Include="Microsoft.Extensions.Caching.Hybrid" Version="9.0.0" />
+
   </ItemGroup>
 
 </Project>

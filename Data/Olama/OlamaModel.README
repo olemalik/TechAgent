@@ -1,0 +1,15 @@
+1. Fine-Tune Ollama with a Custom Modelfile - Ollama uses a Modelfile to customize models with system prompts and training context — this is your "fine-tuning" for domain restriction.
+
+Create Modelfile:
+ 
+ you will find the modelfile in this folder 
+
+2. Build and run your custom model:
+ollama create oilgas-assistant -f Modelfile
+ollama run oilgas-assistant
+ollama serve
+
+3. Modelfile is not true fine-tuning in the deep learning sense. 
+True fine-tuning retrains model weights on the dataset,
+which requires GPU resources and training data.
+
