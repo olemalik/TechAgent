@@ -237,3 +237,5 @@ TechAgent.API/obj/Debug/net9.0/TechAgent.pdb
 TechAgent.API/obj/Debug/net9.0/TechAgent.sourcelink.json
 TechAgent.API/obj/Debug/net9.0/ref/TechAgent.dll
 TechAgent.API/obj/Debug/net9.0/refint/TechAgent.dll
+TechAgent.API/bin/Debug/net9.0/appsettings.json
+TechAgent.API/bin/Debug/net9.0/appsettings.Development.json
