@@ -1,6 +1,6 @@
 using OilGasAI.API.Models;
 
-namespace OilGasAI.API.Services;
+namespace OilGasAI.API.Interfaces;
 
 public interface IDocumentIngestionService
 {

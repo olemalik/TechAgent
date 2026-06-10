@@ -21,10 +21,10 @@ public class OllamaService
         var prompt = BuildChatPrompt(news);
 
         var response = await _httpClient.PostAsJsonAsync(
-            $"{_config["Ollama:BaseUrl"]}/api/generate",
+            $"{_config["AI:Ollama:Endpoint"]}/api/generate",
             new
             {
-                model = _config["Ollama:Model"],
+                model = _config["AI:Ollama:Model"],
                 prompt,
                 stream = false
             });
@@ -42,10 +42,10 @@ public class OllamaService
         try
         {
             var response = await _httpClient.PostAsJsonAsync(
-                $"{_config["Ollama:BaseUrl"]}/api/generate",
+                $"{_config["AI:Ollama:Endpoint"]}/api/generate",
                 new
                 {
-                    model = _config["Ollama:Model"],
+                    model = _config["AI:Ollama:Model"],
                     prompt = BuildChatPrompt(news),
                     stream = false
                 });
@@ -69,12 +69,12 @@ public class OllamaService
     {
         var request = new
         {
-            model = "llama3",
+            model = _config["AI:Ollama:Model"],
             prompt = BuildChatPrompt(news),
             stream = true
         };
 
-        var httpRequest = new HttpRequestMessage(HttpMethod.Post, $"{_config["Ollama:BaseUrl"]}/api/generate")
+        var httpRequest = new HttpRequestMessage(HttpMethod.Post, $"{_config["AI:Ollama:Endpoint"]}/api/generate")
         {
             Content = new StringContent(JsonSerializer.Serialize(request), Encoding.UTF8, "application/json")
         };

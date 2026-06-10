@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
+using OilGasAI.API.Interfaces;
 using OilGasAI.API.Models;
-using OilGasAI.API.Services;
 
 namespace OilGasAI.API.Controllers;
 // This version upgrades the controller to use IRagService — the full RAG pipeline that includes:

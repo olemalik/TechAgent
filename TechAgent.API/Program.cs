@@ -1,10 +1,58 @@
 using Hangfire;
 using Hangfire.MemoryStorage;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.AI;
+using OilGasAI.API.Interfaces;
 using OilGasAI.API.Services;
+using OpenAI;
 using Qdrant.Client;
+using System.ClientModel;
 
 var builder = WebApplication.CreateBuilder(args);
+var provider = builder.Configuration["AI:Provider"]; // "Ollama", "OpenAI", "Claude"
+
+switch (provider)
+{
+    case "Ollama":
+        // Ollama supports the OpenAI-compatible API under /v1
+        var ollamaClient = new OpenAIClient(
+            new ApiKeyCredential("ollama"),
+            new OpenAIClientOptions { Endpoint = new Uri(builder.Configuration["AI:Ollama:Endpoint"]! + "/v1") }
+        );
+        builder.Services.AddChatClient(
+            ollamaClient.GetChatClient(builder.Configuration["AI:Ollama:ChatModel"]!).AsIChatClient()
+        );
+        builder.Services.AddEmbeddingGenerator(
+            ollamaClient.GetEmbeddingClient(builder.Configuration["AI:Ollama:EmbeddingModel"]!).AsIEmbeddingGenerator()
+        );
+        break;
+
+    case "OpenAI":
+        var openAIClient = new OpenAIClient(
+            new ApiKeyCredential(builder.Configuration["AI:OpenAI:ApiKey"]!)
+        );
+        builder.Services.AddChatClient(
+            openAIClient.GetChatClient(builder.Configuration["AI:OpenAI:ChatModel"]!).AsIChatClient()
+        );
+        builder.Services.AddEmbeddingGenerator(
+            openAIClient.GetEmbeddingClient(builder.Configuration["AI:OpenAI:EmbeddingModel"]!).AsIEmbeddingGenerator()
+        );
+        break;
+
+    case "Claude":
+        // Claude via OpenAI-compatible endpoint (chat only — no embeddings API)
+        var claudeClient = new OpenAIClient(
+            new ApiKeyCredential(builder.Configuration["AI:Claude:ApiKey"]!),
+            new OpenAIClientOptions { Endpoint = new Uri("https://api.anthropic.com/v1") }
+        );
+        builder.Services.AddChatClient(
+            claudeClient.GetChatClient(builder.Configuration["AI:Claude:ChatModel"]!).AsIChatClient()
+        );
+        break;
+}
+
+// Register unified AI service
+builder.Services.AddScoped<IAIService, AIService>();
 
 builder.Services.Configure<AppSettings>(
     builder.Configuration.GetSection("AppSettings"));
@@ -21,24 +69,13 @@ builder.Services.AddScoped<AppDbContext>(sp =>
     sp.GetRequiredService<IDbContextFactory<AppDbContext>>().CreateDbContext());
 
 builder.Services.AddHttpClient();
-
 builder.Services.AddScoped<NewsService>();
 builder.Services.AddHttpClient<OllamaService>();
-builder.Services.AddHttpClient<IOllamaONGService, OlamaONGService>();
 builder.Services.AddTransient<TelegramService>();
 builder.Services.AddTransient<DailyJob>();
 
 builder.Services.AddHangfire(x => x.UseMemoryStorage());
 builder.Services.AddHangfireServer();
-//builder.Services.AddSingleton<OpenAIService>();
-// SmartAIService should be transient to avoid lifetime issues with typed HttpClient
-builder.Services.AddTransient<ClaudeService>();
-builder.Services.AddTransient<SmartAIService>();
-
-// ─── NEW: Qdrant vector database client(singleton — thread-safe, gRPC port 6334) ──
-builder.Services.AddSingleton(_ => new QdrantClient(
-    host: builder.Configuration["Qdrant:Host"] ?? "localhost",
-    port: int.Parse(builder.Configuration["Qdrant:Port"] ?? "6334")));
 
 // ─── NEW: Typed HttpClient to Ollama /api/generate (named client for RagService) ──
 // Separate from OllamaService HttpClient above — different timeout (generation is slow on CPU)

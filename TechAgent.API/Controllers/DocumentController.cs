@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OilGasAI.API.Models;
-using OilGasAI.API.Services;
+using OilGasAI.API.Interfaces;
 
 namespace OilGasAI.API.Controllers;
 

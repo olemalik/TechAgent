@@ -7,14 +7,12 @@ public class NewsService
     private readonly AppDbContext _db;
     private readonly NewsSettings _newsSettings;
     private readonly OllamaService _ollama;
-    private readonly SmartAIService _aiFallback;
 
-    public NewsService(AppDbContext db, IOptions<AppSettings> appSettings, OllamaService ollama, SmartAIService aiFallback)
+    public NewsService(AppDbContext db, IOptions<AppSettings> appSettings, OllamaService ollama)
     {
         _db = db;
         _newsSettings = appSettings.Value.NewsSettings ?? new NewsSettings();
         _ollama = ollama;
-        _aiFallback = aiFallback;
     }
 
     public async Task<List<string>> GetNews()
@@ -102,7 +100,7 @@ public class NewsService
 
         if (!usedOllama)
         {
-            await foreach (var chunk in _aiFallback.Summarize(news))
+            await foreach (var chunk in _ollama.StreamChatAsync(news))
             {
                 builder.Append(chunk);
             }

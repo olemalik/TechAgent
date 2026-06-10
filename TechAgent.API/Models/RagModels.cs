@@ -60,40 +60,25 @@ public class DocumentStatusResponse
     public DateTimeOffset? IndexedAt { get; set; }
 }
 
+// ── Supporting chat types ─────────────────────────────────────────────────────
+
+public record ChatMessage(string Role, string Content);
+
+public class ChatRequest
+{
+    public string Message { get; set; } = string.Empty;
+    public List<ChatMessage> History { get; set; } = new();
+}
+
+public class ChatResponse
+{
+    public string Reply { get; set; } = string.Empty;
+    public bool IsSuccess { get; set; }
+    public string? Error { get; set; }
+}
+
 // ── Domain entities added to support RAG ─────────────────────────────────────
 
-/// <summary>Metadata about an uploaded PDF document.</summary>
-public class Document
-{
-    public Guid Id { get; set; } = Guid.NewGuid();
-    public string FileName { get; set; } = null!;
-    public string ContentType { get; set; } = null!;
-    public long SizeBytes { get; set; }
-    public int ChunkCount { get; set; }
-    public string Status { get; set; } = "Processing";  // Processing | Indexed | Failed
-    public string? ErrorMessage { get; set; }
-    public DateTimeOffset UploadedAt { get; set; } = DateTimeOffset.UtcNow;
-    public DateTimeOffset? IndexedAt { get; set; }
-
-    public List<DocumentChunk> Chunks { get; set; } = new();
-}
-
-/// <summary>
-/// Parent-Child chunking: child (small, 150 words) → embedded in Qdrant for precise search.
-/// Parent (large, 600 words) → stored in PostgreSQL, injected into LLM for rich context.
-/// The same Guid is used as both PostgreSQL PK and Qdrant point ID.
-/// </summary>
-public class DocumentChunk
-{
-    public Guid Id { get; set; } = Guid.NewGuid();
-    public Guid DocumentId { get; set; }
-    public string ParentText { get; set; } = null!;   // Injected into LLM context
-    public string ChildText { get; set; } = null!;    // Embedded in Qdrant for search
-    public int ChunkIndex { get; set; }
-    public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
-
-    public Document Document { get; set; } = null!;
-}
 
 /// <summary>Persisted conversation history per session.</summary>
 public class ChatSessionHistory

@@ -1,103 +1,167 @@
+// Services/QdrantService.cs
 using Qdrant.Client;
 using Qdrant.Client.Grpc;
+using OilGasAI.API.Interfaces;
 
 namespace OilGasAI.API.Services;
 
-/// <summary>
-/// Wraps the Qdrant.Client gRPC SDK.
-///
-/// VERIFIED API NOTES for Qdrant.Client 1.12.0:
-///   - Uses gRPC on port 6334 (not the REST port 6333 which is for the dashboard).
-///   - QdrantClient is thread-safe — register as Singleton.
-///   - PointId must be set as: new PointId { Uuid = guid.ToString() }
-///   - Vectors are added via: point.Vectors.Vector.Data.AddRange(floatArray)
-///   - SearchAsync parameter: "withPayload: true" (NOT "payloadSelector: true")
-///   - Collection must be created with Size=768 for nomic-embed-text.
-///   - Distance.Cosine = correct for L2-normalised vectors.
-/// </summary>
 public class QdrantService : IQdrantService
 {
     private readonly QdrantClient _client;
-    private readonly IConfiguration _config;
     private readonly ILogger<QdrantService> _log;
     private readonly string _collection;
+    private readonly int _vectorSize;
 
-    public QdrantService(QdrantClient client, IConfiguration config, ILogger<QdrantService> log)
+    public QdrantService(IConfiguration config, ILogger<QdrantService> log)
     {
-        _client = client;
-        _config = config;
         _log = log;
-        _collection = config["Qdrant:Collection"] ?? "oilgas_documents";
+        _collection = config["Qdrant:CollectionName"] ?? "oilgas-chunks";
+        _vectorSize = int.Parse(config["Qdrant:VectorSize"] ?? "768");
+
+        var host = config["Qdrant:Host"] ?? "localhost";
+        var port = int.Parse(config["Qdrant:Port"] ?? "6334");
+
+        _client = new QdrantClient(host, port);
     }
+
+    // ── 1. EnsureCollectionAsync ──────────────────────────────────────────────
 
     public async Task EnsureCollectionAsync(CancellationToken ct = default)
     {
-        if (await _client.CollectionExistsAsync(_collection, ct))
+        try
         {
-            _log.LogInformation("Qdrant collection '{C}' exists.", _collection);
-            return;
+            var collections = await _client.ListCollectionsAsync(ct);
+            var exists = collections.Any(c => c == _collection);
+
+            if (exists)
+            {
+                _log.LogInformation("Qdrant collection '{Collection}' already exists.", _collection);
+                return;
+            }
+
+            await _client.CreateCollectionAsync(
+                _collection,
+                new VectorParams
+                {
+                    Size = (ulong)_vectorSize,
+                    Distance = Distance.Cosine
+                },
+                cancellationToken: ct);
+
+            _log.LogInformation(
+                "Qdrant collection '{Collection}' created with vector size {Size}.",
+                _collection, _vectorSize);
         }
-
-        await _client.CreateCollectionAsync(
-            _collection,
-            vectorsConfig: new VectorParams { Size = 768, Distance = Distance.Cosine },
-            hnswConfig: new HnswConfigDiff { M = 16, EfConstruct = 100 },
-            cancellationToken: ct);
-
-        _log.LogInformation("Created Qdrant collection '{C}' (768-dim, Cosine).", _collection);
+        catch (Exception ex)
+        {
+            _log.LogError(ex, "Failed to ensure Qdrant collection '{Collection}'.", _collection);
+            throw;
+        }
     }
+
+    // ── 2. UpsertChunksAsync ──────────────────────────────────────────────────
 
     public async Task UpsertChunksAsync(
         IReadOnlyList<(Guid Id, float[] Vector, string ChildText, Guid DocumentId, int Index)> chunks,
         CancellationToken ct = default)
     {
-        var points = new List<PointStruct>(chunks.Count);
-        foreach (var (id, vector, childText, docId, idx) in chunks)
-        {
-            var point = new PointStruct
-            {
-                Id = new PointId { Uuid = id.ToString() },
-                Vectors = new Vectors { Vector = new Vector() }
-            };
-            point.Vectors.Vector.Data.AddRange(vector);
-            point.Payload["documentId"] = docId.ToString();
-            point.Payload["chunkIndex"] = idx;
-            point.Payload["preview"] = childText.Length > 100 ? childText[..100] + "…" : childText;
-            points.Add(point);
-        }
+        if (chunks.Count == 0) return;
 
-        await _client.UpsertAsync(_collection, points, cancellationToken: ct);
-        _log.LogDebug("Upserted {N} vectors to Qdrant.", chunks.Count);
+        try
+        {
+            var points = chunks.Select(c => new PointStruct
+            {
+                Id = new PointId { Uuid = c.Id.ToString() },
+                Vectors = c.Vector,
+                Payload =
+                {
+                    ["child_text"]    = c.ChildText,
+                    ["document_id"]   = c.DocumentId.ToString(),
+                    ["chunk_index"]   = c.Index
+                }
+            }).ToList();
+
+            await _client.UpsertAsync(_collection, points, cancellationToken: ct);
+
+            _log.LogInformation(
+                "Upserted {Count} chunks into Qdrant collection '{Collection}'.",
+                chunks.Count, _collection);
+        }
+        catch (Exception ex)
+        {
+            _log.LogError(ex, "Failed to upsert chunks into Qdrant.");
+            throw;
+        }
     }
+
+    // ── 3. SearchAsync ────────────────────────────────────────────────────────
 
     public async Task<IReadOnlyList<(Guid ChunkId, float Score)>> SearchAsync(
-        float[] queryVector, int limit = 4, CancellationToken ct = default)
+        float[] queryVector,
+        int limit = 4,
+        CancellationToken ct = default)
     {
-        var results = await _client.SearchAsync(
-            _collection,
-            queryVector,
-            limit: (ulong)limit,
-            searchParams: new SearchParams { HnswEf = 128, Exact = false },
-            payloadSelector: true,
-            cancellationToken: ct);
+        try
+        {
+            var results = await _client.SearchAsync(
+                _collection,
+                queryVector,
+                limit: (ulong)limit,
+                payloadSelector: false, // we only need IDs and scores
+                cancellationToken: ct);
 
-        return results
-            .Select(r => (ChunkId: Guid.Parse(r.Id.Uuid), Score: r.Score))
-            .ToList();
+            var hits = results
+                .Select(r => (
+                    ChunkId: Guid.Parse(r.Id.Uuid),
+                    Score: r.Score))
+                .ToList();
+
+            _log.LogInformation(
+                "Qdrant search returned {Count} hits (limit={Limit}).",
+                hits.Count, limit);
+
+            return hits;
+        }
+        catch (Exception ex)
+        {
+            _log.LogError(ex, "Failed to search Qdrant collection '{Collection}'.", _collection);
+            throw;
+        }
     }
+
+    // ── 4. DeleteDocumentAsync ────────────────────────────────────────────────
 
     public async Task DeleteDocumentAsync(Guid documentId, CancellationToken ct = default)
     {
-        var filter = new Filter();
-        filter.Must.Add(new Condition
+        try
         {
-            Field = new FieldCondition
-            {
-                Key = "documentId",
-                Match = new Match { Text = documentId.ToString() }
-            }
-        });
-        await _client.DeleteAsync(_collection, filter: filter, wait: true, cancellationToken: ct);
-        _log.LogInformation("Deleted Qdrant points for document {Id}.", documentId);
+            // Delete all chunks where payload.document_id matches
+            await _client.DeleteAsync(
+                _collection,
+                filter: new Filter
+                {
+                    Must =
+                    {
+                        new Condition
+                        {
+                            Field = new FieldCondition
+                            {
+                                Key = "document_id",
+                                Match = new Match { Text = documentId.ToString() }
+                            }
+                        }
+                    }
+                },
+                cancellationToken: ct);
+
+            _log.LogInformation(
+                "Deleted all chunks for document '{DocumentId}' from Qdrant.",
+                documentId);
+        }
+        catch (Exception ex)
+        {
+            _log.LogError(ex, "Failed to delete document '{DocumentId}' from Qdrant.", documentId);
+            throw;
+        }
     }
 }
