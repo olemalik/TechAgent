@@ -8,6 +8,11 @@
 *.sln.DotSettings.user
 TestResults/
 
+# User secrets (auto-managed by .NET)
+**/appsettings.Development.json
+**/secrets.json
+
+
 # Environment-specific settings (may contain secrets)
 appsettings.Development.json
 appsettings.Local.json
@@ -19,8 +24,10 @@ TechAgent.Client/dist/
 TechAgent.Client/.angular/
 TechAgent.Client/src/environments/environment.prod.ts
 
+
 # ─── General ─────────────────────────────────────────────────────────────────
 .DS_Store
 Thumbs.db
 *.log
 .env
+.env.*
