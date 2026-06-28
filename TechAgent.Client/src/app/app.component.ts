@@ -1,13 +1,14 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { ChatComponent } from './chat/chat.component';
 import { SidebarComponent } from './sidebar/sidebar.component';
+import { DocumentsComponent } from './documents/documents.component';
 import { ChatService } from './chat/chat.service';
 import { ThemeService } from './theme.service';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [ChatComponent, SidebarComponent],
+  imports: [ChatComponent, SidebarComponent, DocumentsComponent],
   templateUrl: './app.component.html',
   styleUrl: './app.component.css'
 })
@@ -19,6 +20,7 @@ export class AppComponent implements OnInit {
   activeSessionId: string | null = null;
   sidebarRefresh = 0;
   sidebarOpen = true;
+  view: 'chat' | 'documents' = 'chat';
 
   ngOnInit(): void {
     const saved = this.chatService.getSessionId();

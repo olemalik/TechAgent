@@ -78,6 +78,11 @@
   color: var(--topbar-text);
 }
 
+.topbar-btn.active {
+  background: var(--topbar-btn-hover);
+  color: var(--topbar-text);
+}
+
 /* ── Chat area ───────────────────────────────────────────────────────── */
 .chat-wrapper {
   flex: 1;
