@@ -126,9 +126,12 @@ builder.Services.AddControllers();
 
 var app = builder.Build();
 
-// Ensure Qdrant collection exists at startup (idempotent — safe to call every time)
+// Apply pending EF migrations and ensure Qdrant collection exists at startup
 await using (var scope = app.Services.CreateAsyncScope())
 {
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    await db.Database.MigrateAsync();
+
     var qdrant = scope.ServiceProvider.GetRequiredService<IQdrantService>();
     await qdrant.EnsureCollectionAsync();
 }

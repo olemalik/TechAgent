@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { ChatApiResponse, ChatHistoryEntry, SessionSummary } from './models/chat.model';
+import { SESSION_KEY } from './constants/chat.constants';
 
 @Injectable({ providedIn: 'root' })
 export class ChatService {
@@ -32,6 +33,10 @@ export class ChatService {
 
   getSessions(): Observable<SessionSummary[]> {
     return this.http.get<SessionSummary[]>(`${this.apiUrl}/sessions`);
+  }
+
+  deleteSession(sessionId: string): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/history/${sessionId}`);
   }
 
   clearSession(): void {

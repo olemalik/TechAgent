@@ -58,8 +58,16 @@ public class RagService : IRagService
         if (!await _guard.IsAllowedAsync(request.Message, queryVec, ct))
         {
             const string refusal =
-                "I can only assist with Oil & Gas industry topics. " +
-                "Please ask about drilling, production, HSE, reservoir engineering, pipelines, or refining.";
+                "Thank you for your question. I'm a specialist AI assistant focused exclusively on the Oil & Gas industry, " +
+                "so I'm not able to help with that particular topic.\n\n" +
+                "I'm well-equipped to assist you with:\n" +
+                "• Drilling & well operations\n" +
+                "• Reservoir engineering & production optimisation\n" +
+                "• HSE, safety procedures & incident management\n" +
+                "• Pipeline integrity & flow assurance\n" +
+                "• Refining, processing & LNG operations\n" +
+                "• Upstream, midstream & downstream topics\n\n" +
+                "Feel free to ask me anything within these areas — I'm here to help!";
 
             await PersistAsync(sessionId, request.Message, refusal, refused: true, ct);
 
@@ -89,7 +97,7 @@ public class RagService : IRagService
             : [];
 
         var history = await db.ChatHistory
-            .Where(h => h.SessionId == sessionId)
+            .Where(h => h.SessionId == sessionId && !h.IsDeleted)
             .OrderByDescending(h => h.CreatedAt)
             .Take(MaxHistoryTurns)
             .OrderBy(h => h.CreatedAt)

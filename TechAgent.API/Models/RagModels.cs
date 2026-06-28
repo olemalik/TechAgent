@@ -88,5 +88,6 @@ public class ChatSessionHistory
     public string Role { get; set; } = null!;          // user | assistant
     public string Message { get; set; } = null!;
     public bool WasRefused { get; set; }
+    public bool IsDeleted { get; set; }
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 }

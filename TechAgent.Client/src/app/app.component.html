@@ -5,6 +5,7 @@
       [activeSessionId]="activeSessionId"
       [refreshSignal]="sidebarRefresh"
       (sessionSelected)="selectSession($event)"
+      (sessionDeleted)="onSessionDeleted($event)"
       (newChatRequested)="newChat()"
       (toggleRequested)="toggleSidebar()" />
   </div>

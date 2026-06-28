@@ -73,6 +73,7 @@ public class ChatController : ControllerBase
         await using var db = await _dbFactory.CreateDbContextAsync(ct);
 
         var sessionMeta = await db.ChatHistory
+            .Where(h => !h.IsDeleted)
             .GroupBy(h => h.SessionId)
             .Select(g => new { SessionId = g.Key, LastActivity = g.Max(h => h.CreatedAt) })
             .OrderByDescending(s => s.LastActivity)
@@ -83,7 +84,7 @@ public class ChatController : ControllerBase
 
         // Get the min Id (first message) per session for the title
         var firstIds = await db.ChatHistory
-            .Where(h => sessionIds.Contains(h.SessionId) && h.Role == "user")
+            .Where(h => sessionIds.Contains(h.SessionId) && h.Role == "user" && !h.IsDeleted)
             .GroupBy(h => h.SessionId)
             .Select(g => new { SessionId = g.Key, MinId = g.Min(h => h.Id) })
             .AsNoTracking()
@@ -117,13 +118,27 @@ public class ChatController : ControllerBase
         await using var db = await _dbFactory.CreateDbContextAsync(ct);
 
         var history = await db.ChatHistory
-            .Where(h => h.SessionId == sessionId)
+            .Where(h => h.SessionId == sessionId && !h.IsDeleted)
             .OrderBy(h => h.CreatedAt)
             .AsNoTracking()
             .Select(h => new { h.Role, h.Message, h.CreatedAt, h.WasRefused })
             .ToListAsync(ct);
 
         return Ok(history);
+    }
+
+    /// <summary>
+    /// DELETE /api/chat/history/{sessionId}
+    /// Permanently removes all messages for a session.
+    /// </summary>
+    [HttpDelete("history/{sessionId:guid}")]
+    public async Task<IActionResult> DeleteHistory(Guid sessionId, CancellationToken ct)
+    {
+        await using var db = await _dbFactory.CreateDbContextAsync(ct);
+        var updated = await db.ChatHistory
+            .Where(h => h.SessionId == sessionId && !h.IsDeleted)
+            .ExecuteUpdateAsync(s => s.SetProperty(h => h.IsDeleted, true), ct);
+        return Ok(new { updated });
     }
 
     /// <summary>

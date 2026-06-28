@@ -43,6 +43,12 @@ export class AppComponent implements OnInit {
     this.sidebarRefresh++;
   }
 
+  onSessionDeleted(id: string): void {
+    if (this.activeSessionId === id) {
+      this.newChat();
+    }
+  }
+
   toggleSidebar(): void {
     this.sidebarOpen = !this.sidebarOpen;
   }

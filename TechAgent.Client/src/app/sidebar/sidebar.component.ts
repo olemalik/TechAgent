@@ -1,5 +1,6 @@
 import { Component, OnInit, OnChanges, SimpleChanges, Input, Output, EventEmitter, inject } from '@angular/core';
-import { ChatService, SessionSummary } from '../chat/chat.service';
+import { ChatService } from '../chat/chat.service';
+import { SessionSummary } from '../chat/models/chat.model';
 
 @Component({
   selector: 'app-sidebar',
@@ -12,6 +13,7 @@ export class SidebarComponent implements OnInit, OnChanges {
   @Input() activeSessionId: string | null = null;
   @Input() refreshSignal = 0;
   @Output() sessionSelected = new EventEmitter<string>();
+  @Output() sessionDeleted = new EventEmitter<string>();
   @Output() newChatRequested = new EventEmitter<void>();
   @Output() toggleRequested = new EventEmitter<void>();
 
@@ -45,6 +47,17 @@ export class SidebarComponent implements OnInit, OnChanges {
     return isToday
       ? d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       : d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+  }
+
+  deleteSession(sessionId: string, event: Event): void {
+    event.stopPropagation();
+    this.chatService.deleteSession(sessionId).subscribe({
+      next: () => {
+        this.sessions = this.sessions.filter(s => s.sessionId !== sessionId);
+        this.sessionDeleted.emit(sessionId);
+      },
+      error: () => { /* leave list intact — delete silently failed */ }
+    });
   }
 
   truncate(text: string, max = 38): string {
