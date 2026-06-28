@@ -1,6 +1,20 @@
-# TechAgentClient
+# TechAgent.Client
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 19.1.2.
+Angular 19 frontend for TechAgent — Syncfusion-powered chat UI.
+
+## Environment Setup
+
+`environment.ts` and `environment.prod.ts` are gitignored because they contain the Syncfusion license key.
+Copy the example file and fill in your real values before running or building:
+
+```bash
+cp src/environments/environment.example.ts src/environments/environment.ts
+# Edit environment.ts and replace YOUR_SYNCFUSION_KEY with your real key
+```
+
+Get your free community license key at [syncfusion.com/products/communitylicense](https://www.syncfusion.com/products/communitylicense).
+
+The Syncfusion key is registered once at startup in `main.ts` via `environment.syncfusionLicenseKey` — it is never hardcoded in source.
 
 ## Development server
 

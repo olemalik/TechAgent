@@ -1,1 +1,188 @@
-/* You can add global styles to this file, and also import other style files */
+@import "@syncfusion/ej2-interactive-chat/styles/material.css";
+
+/* ── Reset ───────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body, app-root {
+  height: 100%;
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* ── Design tokens — DARK (default) ─────────────────────────────────── */
+:root, [data-theme="dark"] {
+  --sidebar-bg:           #171717;
+  --sidebar-border:       rgba(255,255,255,0.07);
+  --sidebar-text:         rgba(255,255,255,0.82);
+  --sidebar-text-muted:   rgba(255,255,255,0.32);
+  --sidebar-hover:        rgba(255,255,255,0.07);
+  --sidebar-active:       rgba(255,255,255,0.12);
+  --sidebar-btn:          rgba(255,255,255,0.5);
+  --sidebar-btn-hover:    rgba(255,255,255,0.1);
+  --sidebar-section:      rgba(255,255,255,0.28);
+
+  --topbar-bg:            #212121;
+  --topbar-border:        rgba(255,255,255,0.07);
+  --topbar-text:          rgba(255,255,255,0.75);
+  --topbar-btn:           rgba(255,255,255,0.5);
+  --topbar-btn-hover:     rgba(255,255,255,0.08);
+
+  --chat-bg:              #212121;
+  --welcome-icon:         rgba(255,255,255,0.18);
+  --welcome-title:        rgba(255,255,255,0.87);
+  --welcome-sub:          rgba(255,255,255,0.38);
+
+  --msg-user-bg:          #2f2f2f;
+  --msg-user-border:      rgba(255,255,255,0.07);
+  --msg-ai-bg:            #1e1e1e;
+  --msg-ai-border:        rgba(255,255,255,0.09);
+  --msg-text:             rgba(255,255,255,0.87);
+  --msg-meta:             rgba(255,255,255,0.3);
+
+  --input-bg:             #2a2a2a;
+  --input-border:         rgba(255,255,255,0.1);
+  --input-border-focus:   rgba(255,255,255,0.25);
+  --input-bg-focus:       #313131;
+  --input-text:           rgba(255,255,255,0.87);
+  --input-placeholder:    rgba(255,255,255,0.3);
+  --send-btn-bg:          rgba(255,255,255,0.08);
+  --send-btn-color:       rgba(255,255,255,0.6);
+  --send-btn-hover:       rgba(255,255,255,0.15);
+
+  --footer-bg:            #212121;
+  --footer-border:        rgba(255,255,255,0.07);
+  --timebreak-color:      rgba(255,255,255,0.25);
+
+  --typing-bg:            #2a2a2a;
+  --typing-border:        rgba(255,255,255,0.08);
+  --typing-dot:           rgba(255,255,255,0.45);
+}
+
+/* ── Design tokens — LIGHT ───────────────────────────────────────────── */
+[data-theme="light"] {
+  --sidebar-bg:           #f0f0ef;
+  --sidebar-border:       rgba(0,0,0,0.08);
+  --sidebar-text:         rgba(0,0,0,0.82);
+  --sidebar-text-muted:   rgba(0,0,0,0.42);
+  --sidebar-hover:        rgba(0,0,0,0.06);
+  --sidebar-active:       rgba(0,0,0,0.1);
+  --sidebar-btn:          rgba(0,0,0,0.5);
+  --sidebar-btn-hover:    rgba(0,0,0,0.08);
+  --sidebar-section:      rgba(0,0,0,0.38);
+
+  --topbar-bg:            #ffffff;
+  --topbar-border:        rgba(0,0,0,0.08);
+  --topbar-text:          rgba(0,0,0,0.75);
+  --topbar-btn:           rgba(0,0,0,0.5);
+  --topbar-btn-hover:     rgba(0,0,0,0.06);
+
+  --chat-bg:              #ffffff;
+  --welcome-icon:         rgba(0,0,0,0.15);
+  --welcome-title:        rgba(0,0,0,0.87);
+  --welcome-sub:          rgba(0,0,0,0.45);
+
+  --msg-user-bg:          #f0f0f0;
+  --msg-user-border:      rgba(0,0,0,0.07);
+  --msg-ai-bg:            #ffffff;
+  --msg-ai-border:        rgba(0,0,0,0.1);
+  --msg-text:             rgba(0,0,0,0.87);
+  --msg-meta:             rgba(0,0,0,0.35);
+
+  --input-bg:             #f4f4f4;
+  --input-border:         rgba(0,0,0,0.12);
+  --input-border-focus:   rgba(0,0,0,0.28);
+  --input-bg-focus:       #ffffff;
+  --input-text:           rgba(0,0,0,0.87);
+  --input-placeholder:    rgba(0,0,0,0.35);
+  --send-btn-bg:          rgba(0,0,0,0.06);
+  --send-btn-color:       rgba(0,0,0,0.55);
+  --send-btn-hover:       rgba(0,0,0,0.12);
+
+  --footer-bg:            #ffffff;
+  --footer-border:        rgba(0,0,0,0.08);
+  --timebreak-color:      rgba(0,0,0,0.3);
+
+  --typing-bg:            #f0f0f0;
+  --typing-border:        rgba(0,0,0,0.08);
+  --typing-dot:           rgba(0,0,0,0.4);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Syncfusion ChatUI overrides — applied via CSS variables
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* Container */
+.e-chat-ui {
+  background: var(--chat-bg) !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  height: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+/* Hide built-in header */
+.e-chat-ui .e-chat-header,
+.e-chat-ui .e-header {
+  display: none !important;
+}
+
+/* Message scroll area */
+.e-chat-ui .e-content,
+.e-chat-ui .e-chat-content,
+.e-chat-ui .e-message-list,
+.e-chat-ui .e-list-container {
+  background: var(--chat-bg) !important;
+  flex: 1 !important;
+}
+
+/* Time break */
+.e-chat-ui .e-time-break,
+.e-chat-ui .e-timebreak {
+  color: var(--timebreak-color) !important;
+}
+
+/* ── Bubbles ─────────────────────────────────────────────────────────── */
+
+/* User (right) */
+.e-chat-ui .e-message-wrapper.e-right .e-message-content,
+.e-chat-ui .e-right .e-message-content {
+  background: var(--msg-user-bg) !important;
+  border: 1px solid var(--msg-user-border) !important;
+  border-radius: 18px 18px 4px 18px !important;
+}
+
+/* AI (left) */
+.e-chat-ui .e-message-wrapper.e-left .e-message-content,
+.e-chat-ui .e-left .e-message-content {
+  background: var(--msg-ai-bg) !important;
+  border: 1px solid var(--msg-ai-border) !important;
+  border-radius: 18px 18px 18px 4px !important;
+}
+
+/* Text inside ALL bubbles */
+.e-chat-ui .e-message-content,
+.e-chat-ui .e-message-content *,
+.e-chat-ui .e-message-text,
+.e-chat-ui .e-message-body,
+.e-chat-ui .e-message-body * {
+  color: var(--msg-text) !important;
+}
+
+/* Author / timestamp meta */
+.e-chat-ui .e-message-author,
+.e-chat-ui .e-message-time,
+.e-chat-ui .e-author,
+.e-chat-ui .e-time {
+  color: var(--msg-meta) !important;
+  font-size: 11px !important;
+}
+
+/* ── Footer — hidden: replaced by our custom footer ─────────────────── */
+.e-chat-ui .e-footer,
+.e-chat-ui .e-chat-footer {
+  display: none !important;
+}
+
+/* Input/send button overrides removed — we use a custom footer component */

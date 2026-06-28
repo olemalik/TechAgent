@@ -1,4 +1,10 @@
 services:
+  techagent-api:
+    environment:
+      - Telegram__BotToken=${TELEGRAM_BOT_TOKEN}
+      - Telegram__ChatId=${TELEGRAM_CHAT_ID}
+      - OpenAI__ApiKey=${OPENAI_API_KEY}
+      - Claude__ApiKey=${CLAUDE_API_KEY}
   qdrant:
     image: qdrant/qdrant:latest
     container_name: techagent-qdrant

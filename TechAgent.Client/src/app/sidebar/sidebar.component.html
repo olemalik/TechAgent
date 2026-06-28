@@ -1,0 +1,42 @@
+<aside class="sidebar">
+  <div class="sidebar-header">
+    <button class="icon-btn" title="Close sidebar" (click)="toggleRequested.emit()">
+      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="3" y1="6" x2="21" y2="6"/>
+        <line x1="3" y1="12" x2="21" y2="12"/>
+        <line x1="3" y1="18" x2="21" y2="18"/>
+      </svg>
+    </button>
+    <span class="brand">TechAgent</span>
+    <button class="icon-btn" title="New chat" (click)="newChatRequested.emit()">
+      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 5v14M5 12h14" />
+      </svg>
+    </button>
+  </div>
+
+  <div class="section-label">Recent</div>
+
+  <nav class="sessions">
+    @if (loadError) {
+      <div class="error-state">
+        <p>Could not load sessions</p>
+        <button class="retry-btn" (click)="loadSessions()">Retry</button>
+      </div>
+    } @else if (sessions.length === 0) {
+      <p class="empty">No previous chats</p>
+    } @else {
+      @for (session of sessions; track session.sessionId) {
+        <button
+          class="session-item"
+          [class.active]="session.sessionId === activeSessionId"
+          (click)="sessionSelected.emit(session.sessionId)">
+          <span class="session-title">{{ truncate(session.title) }}</span>
+          <span class="session-date">{{ formatDate(session.lastActivity) }}</span>
+        </button>
+      }
+    }
+  </nav>
+</aside>

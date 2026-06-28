@@ -22,6 +22,7 @@ appsettings.Production.json
 TechAgent.Client/node_modules/
 TechAgent.Client/dist/
 TechAgent.Client/.angular/
+TechAgent.Client/src/environments/environment.ts
 TechAgent.Client/src/environments/environment.prod.ts
 
 

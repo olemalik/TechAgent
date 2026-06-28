@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using OilGasAI.API.Interfaces;
 using OilGasAI.API.Models;
 
@@ -14,10 +15,12 @@ namespace OilGasAI.API.Controllers;
 public class ChatController : ControllerBase
 {
     private readonly IRagService _ragService;
+    private readonly IDbContextFactory<AppDbContext> _dbFactory;
 
-    public ChatController(IRagService ragService)
+    public ChatController(IRagService ragService, IDbContextFactory<AppDbContext> dbFactory)
     {
         _ragService = ragService;
+        _dbFactory = dbFactory;
     }
 
     /// <summary>
@@ -58,6 +61,69 @@ public class ChatController : ControllerBase
         var ragRequest = new RagChatRequest { Message = request.Message, History = request.History };
         var response = await _ragService.AskAsync(ragRequest, ct);
         return Ok(response);
+    }
+
+    /// <summary>
+    /// GET /api/chat/sessions
+    /// Returns all sessions with their first message as title and last activity time.
+    /// </summary>
+    [HttpGet("sessions")]
+    public async Task<IActionResult> GetSessions(CancellationToken ct)
+    {
+        await using var db = await _dbFactory.CreateDbContextAsync(ct);
+
+        var sessionMeta = await db.ChatHistory
+            .GroupBy(h => h.SessionId)
+            .Select(g => new { SessionId = g.Key, LastActivity = g.Max(h => h.CreatedAt) })
+            .OrderByDescending(s => s.LastActivity)
+            .AsNoTracking()
+            .ToListAsync(ct);
+
+        var sessionIds = sessionMeta.Select(s => s.SessionId).ToList();
+
+        // Get the min Id (first message) per session for the title
+        var firstIds = await db.ChatHistory
+            .Where(h => sessionIds.Contains(h.SessionId) && h.Role == "user")
+            .GroupBy(h => h.SessionId)
+            .Select(g => new { SessionId = g.Key, MinId = g.Min(h => h.Id) })
+            .AsNoTracking()
+            .ToListAsync(ct);
+
+        var minIds = firstIds.Select(f => f.MinId).ToList();
+
+        var firstMessages = await db.ChatHistory
+            .Where(h => minIds.Contains(h.Id))
+            .Select(h => new { h.Id, h.SessionId, h.Message })
+            .AsNoTracking()
+            .ToListAsync(ct);
+
+        var sessions = sessionMeta.Select(s => new
+        {
+            s.SessionId,
+            Title = firstMessages.FirstOrDefault(m => m.SessionId == s.SessionId)?.Message ?? "New Chat",
+            s.LastActivity
+        });
+
+        return Ok(sessions);
+    }
+
+    /// <summary>
+    /// GET /api/chat/history/{sessionId}
+    /// Returns past messages for a session so the client can restore chat history on load.
+    /// </summary>
+    [HttpGet("history/{sessionId:guid}")]
+    public async Task<IActionResult> GetHistory(Guid sessionId, CancellationToken ct)
+    {
+        await using var db = await _dbFactory.CreateDbContextAsync(ct);
+
+        var history = await db.ChatHistory
+            .Where(h => h.SessionId == sessionId)
+            .OrderBy(h => h.CreatedAt)
+            .AsNoTracking()
+            .Select(h => new { h.Role, h.Message, h.CreatedAt, h.WasRefused })
+            .ToListAsync(ct);
+
+        return Ok(history);
     }
 
     /// <summary>
