@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OilGasAI.API.Interfaces;
@@ -47,20 +48,36 @@ public class ChatController : ControllerBase
     }
 
     /// <summary>
-    /// POST /api/chat/direct
-    /// Direct Oil &amp; Gas chat without RAG document search.
-    /// Useful when no company documents are uploaded yet.
+    /// POST /api/chat/stream
+    /// Same RAG pipeline as /api/chat but streams the AI response as Server-Sent Events.
+    /// Each event: data: {"type":"token","value":"..."}\n\n
+    /// Final event: data: {"type":"done","sessionId":"..."}\n\n
     /// </summary>
-    [HttpPost("direct")]
-    public async Task<IActionResult> DirectChat([FromBody] ChatRequest request, CancellationToken ct)
+    [HttpPost("stream")]
+    public async Task StreamChat([FromBody] RagChatRequest request, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(request.Message))
-            return BadRequest("Message cannot be empty.");
+        {
+            Response.StatusCode = 400;
+            return;
+        }
 
-        // Wrap as a RAG request with no history (will use model knowledge only if no docs indexed)
-        var ragRequest = new RagChatRequest { Message = request.Message, History = request.History };
-        var response = await _ragService.AskAsync(ragRequest, ct);
-        return Ok(response);
+        Response.ContentType = "text/event-stream";
+        Response.Headers.CacheControl = "no-cache";
+        Response.Headers.Connection = "keep-alive";
+
+        var opts = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+
+        try
+        {
+            await foreach (var chunk in _ragService.StreamAsync(request, ct))
+            {
+                var json = JsonSerializer.Serialize(chunk, opts);
+                await Response.WriteAsync($"data: {json}\n\n", ct);
+                await Response.Body.FlushAsync(ct);
+            }
+        }
+        catch (OperationCanceledException) { /* client disconnected */ }
     }
 
     /// <summary>
@@ -152,37 +169,6 @@ public class ChatController : ControllerBase
         return Ok(new { status = "ready", note = "Use /api/health for full system check." });
     }
 }
-
-
-// [ApiController]
-// [Route("api/[controller]")]
-// public class ChatController : ControllerBase
-// {
-//     private readonly IOllamaONGService _ollamaService;
-
-//     public ChatController(IOllamaONGService ollamaService)
-//     {
-//         _ollamaService = ollamaService;
-//     }
-
-//     [HttpPost]
-//     public async Task<IActionResult> Chat([FromBody] ChatRequest request)
-//     {
-//         if (string.IsNullOrWhiteSpace(request.Message))
-//             return BadRequest("Message cannot be empty.");
-
-//         var response = await _ollamaService.ChatAsync(request);
-
-//         if (!response.IsSuccess)
-//             return StatusCode(500, response.Error);
-
-//         return Ok(response);
-//     }
-
-//     [HttpGet("health")]
-//     public async Task<IActionResult> Health()
-//     {
-//         var isAvailable = await _ollamaService.IsModelAvailableAsync();
 //         return Ok(new { status = isAvailable ? "online" : "offline", model = "oilgas-assistant" });
 //     }
 // }

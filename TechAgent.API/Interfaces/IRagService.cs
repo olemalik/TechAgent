@@ -5,4 +5,5 @@ namespace OilGasAI.API.Interfaces;
 public interface IRagService
 {
     Task<RagChatResponse> AskAsync(RagChatRequest request, CancellationToken ct = default);
+    IAsyncEnumerable<RagStreamChunk> StreamAsync(RagChatRequest request, CancellationToken ct = default);
 }

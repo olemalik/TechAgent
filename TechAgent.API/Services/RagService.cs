@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
 using OilGasAI.API.Interfaces;
@@ -135,6 +136,71 @@ public class RagService : IRagService
             WasRefused = false,
             Sources = sources
         };
+    }
+
+    public async IAsyncEnumerable<RagStreamChunk> StreamAsync(
+        RagChatRequest request,
+        [EnumeratorCancellation] CancellationToken ct = default)
+    {
+        var sessionId = request.SessionId ?? Guid.NewGuid();
+
+        var queryVec = await _aiService.GetEmbeddingAsync(request.Message, ct);
+
+        if (!await _guard.IsAllowedAsync(request.Message, queryVec, ct))
+        {
+            const string refusal =
+                "Thank you for your question. I'm a specialist AI assistant focused exclusively on the Oil & Gas industry, " +
+                "so I'm not able to help with that particular topic.\n\n" +
+                "I'm well-equipped to assist you with:\n" +
+                "• Drilling & well operations\n" +
+                "• Reservoir engineering & production optimisation\n" +
+                "• HSE, safety procedures & incident management\n" +
+                "• Pipeline integrity & flow assurance\n" +
+                "• Refining, processing & LNG operations\n" +
+                "• Upstream, midstream & downstream topics\n\n" +
+                "Feel free to ask me anything within these areas — I'm happy to help!";
+
+            await PersistAsync(sessionId, request.Message, refusal, refused: true, ct);
+            yield return new RagStreamChunk { Type = "token", Value = refusal };
+            yield return new RagStreamChunk { Type = "done", SessionId = sessionId, WasRefused = true };
+            yield break;
+        }
+
+        await using var db = await _dbFactory.CreateDbContextAsync(ct);
+
+        var hits = await _qdrant.SearchAsync(queryVec, TopK, ct);
+        var chunkIds = hits.Select(h => h.ChunkId).ToList();
+
+        var chunks = chunkIds.Count > 0
+            ? await db.DocumentChunks
+                .Where(c => chunkIds.Contains(c.Id))
+                .Select(c => new { c.ParentText, c.Document.FileName })
+                .AsNoTracking()
+                .ToListAsync(ct)
+            : [];
+
+        var history = await db.ChatHistory
+            .Where(h => h.SessionId == sessionId && !h.IsDeleted)
+            .OrderByDescending(h => h.CreatedAt)
+            .Take(MaxHistoryTurns)
+            .OrderBy(h => h.CreatedAt)
+            .AsNoTracking()
+            .ToListAsync(ct);
+
+        var prompt = BuildPrompt(
+            request.Message,
+            chunks.Select(c => (c.ParentText, c.FileName)).ToList(),
+            history);
+
+        var fullText = new StringBuilder();
+        await foreach (var token in _aiService.StreamAsync(prompt, ct))
+        {
+            fullText.Append(token);
+            yield return new RagStreamChunk { Type = "token", Value = token };
+        }
+
+        await PersistAsync(sessionId, request.Message, fullText.ToString(), refused: false, ct);
+        yield return new RagStreamChunk { Type = "done", SessionId = sessionId, WasRefused = false };
     }
 
     // ── Prompt Builder ────────────────────────────────────────────────────────

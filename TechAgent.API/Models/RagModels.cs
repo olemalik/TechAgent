@@ -6,11 +6,6 @@ namespace OilGasAI.API.Models;
 public record OllamaEmbedRequest(string model, IReadOnlyList<string> input);
 public record OllamaEmbedResponse(IReadOnlyList<float[]> embeddings);
 
-// ── Ollama /api/generate (oilgas-assistant, stream:false) ────────────────────
-
-public record OllamaGenerateRequest(string model, string prompt, bool stream);
-public record OllamaGenerateResponse(string response, bool done);
-
 // ── RAG pipeline request / response ─────────────────────────────────────────
 
 public class RagChatRequest
@@ -60,21 +55,15 @@ public class DocumentStatusResponse
     public DateTimeOffset? IndexedAt { get; set; }
 }
 
-// ── Supporting chat types ─────────────────────────────────────────────────────
+// ── Streaming chunk ───────────────────────────────────────────────────────────
 
-public record ChatMessage(string Role, string Content);
-
-public class ChatRequest
+public class RagStreamChunk
 {
-    public string Message { get; set; } = string.Empty;
-    public List<ChatMessage> History { get; set; } = new();
-}
-
-public class ChatResponse
-{
-    public string Reply { get; set; } = string.Empty;
-    public bool IsSuccess { get; set; }
-    public string? Error { get; set; }
+    /// <summary>"token" while streaming, "done" when the stream is complete, "error" on failure.</summary>
+    public string Type { get; set; } = "token";
+    public string? Value { get; set; }
+    public Guid? SessionId { get; set; }
+    public bool WasRefused { get; set; }
 }
 
 // ── Domain entities added to support RAG ─────────────────────────────────────

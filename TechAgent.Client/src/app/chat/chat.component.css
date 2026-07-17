@@ -37,10 +37,7 @@
   transition: background 0.2s;
 }
 
-.welcome-icon {
-  color: var(--welcome-icon);
-  margin-bottom: 4px;
-}
+.welcome-icon { color: var(--welcome-icon); margin-bottom: 4px; }
 
 .welcome-title {
   font-size: 28px;
@@ -65,7 +62,6 @@
   transition: background 0.2s;
 }
 
-/* Input row */
 .input-wrapper {
   display: flex;
   align-items: flex-end;
@@ -95,7 +91,6 @@ textarea {
   min-height: 24px;
   max-height: 160px;
   overflow-y: auto;
-  /* Dark mode text fix at the element level */
   -webkit-text-fill-color: var(--input-text);
   caret-color: var(--input-text);
 }
@@ -117,8 +112,6 @@ textarea::placeholder {
   border-radius: 50%;
   cursor: pointer;
   transition: background 0.15s, transform 0.1s, opacity 0.15s;
-
-  /* Disabled state */
   background: var(--send-btn-bg);
   color: var(--send-btn-color);
   opacity: 0.5;
@@ -135,23 +128,14 @@ textarea::placeholder {
   transform: scale(1.06);
 }
 
-.send-btn:disabled {
-  cursor: not-allowed;
-}
-
-/* Spinner animation */
-.send-btn svg {
-  animation: none;
-}
+.send-btn:disabled { cursor: not-allowed; }
 
 .send-btn:not(.active) svg {
   animation: spin 1s linear infinite;
   animation-play-state: paused;
 }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
+@keyframes spin { to { transform: rotate(360deg); } }
 
 /* ── Footer hint + typing indicator ──────────────────────────────────── */
 .footer-hint {
@@ -198,5 +182,5 @@ textarea::placeholder {
 
 @keyframes bounce {
   0%, 80%, 100% { transform: scale(0.6); opacity: 0.35; }
-  40%           { transform: scale(1);   opacity: 1;    }
+  40%            { transform: scale(1);   opacity: 1;    }
 }

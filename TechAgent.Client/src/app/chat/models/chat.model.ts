@@ -1,13 +1,4 @@
 
-export interface ChatApiResponse {
-  sessionId: string;
-  reply: string;
-  isSuccess: boolean;
-  wasRefused: boolean;
-  sources: string[];
-  error?: string;
-}
-
 export interface ChatHistoryEntry {
   role: string;
   message: string;

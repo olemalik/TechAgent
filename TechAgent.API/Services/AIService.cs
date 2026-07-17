@@ -1,4 +1,5 @@
 // Services/AIService.cs
+using System.Runtime.CompilerServices;
 using Microsoft.Extensions.AI;
 using OilGasAI.API.Interfaces;
 
@@ -33,6 +34,19 @@ public class AIService : IAIService
         {
             _logger.LogError(ex, "Error calling AI chat");
             throw;
+        }
+    }
+
+    public async IAsyncEnumerable<string> StreamAsync(
+        string prompt,
+        [EnumeratorCancellation] CancellationToken ct = default)
+    {
+        var messages = new List<ChatMessage> { new(ChatRole.User, prompt) };
+        await foreach (var update in _chatClient.GetStreamingResponseAsync(messages, cancellationToken: ct))
+        {
+            var text = update.Text;
+            if (!string.IsNullOrEmpty(text))
+                yield return text;
         }
     }
 

@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
-import { ChatApiResponse, ChatHistoryEntry, SessionSummary } from './models/chat.model';
+import { ChatHistoryEntry, SessionSummary } from './models/chat.model';
 import { SESSION_KEY } from './constants/chat.constants';
 
 @Injectable({ providedIn: 'root' })
@@ -11,10 +11,15 @@ export class ChatService {
   private readonly http = inject(HttpClient);
   private sessionId: string | null = localStorage.getItem(SESSION_KEY);
 
-  send(message: string): Observable<ChatApiResponse> {
-    return this.http.post<ChatApiResponse>(this.apiUrl, {
-      message,
-      sessionId: this.sessionId
+  sendStreaming(message: string, signal: AbortSignal): Promise<ReadableStreamDefaultReader<Uint8Array>> {
+    return fetch(`${this.apiUrl}/stream`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message, sessionId: this.sessionId }),
+      signal
+    }).then(res => {
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return res.body!.getReader();
     });
   }
 
