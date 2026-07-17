@@ -186,3 +186,7 @@ html, body, app-root {
 }
 
 /* Input/send button overrides removed — we use a custom footer component */
+
+/* ── Hide Syncfusion copy button ─────────────────────────────────────── */
+.e-chat-message-toolbar,
+.e-chat-copy { display: none !important; }
