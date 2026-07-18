@@ -1,25 +1,28 @@
-import { Component, OnInit, OnDestroy, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { DocumentService, DocumentStatus } from './document.service';
+import { FileUploaderComponent } from '../shared/file-uploader/file-uploader.component';
 import { interval, Subscription } from 'rxjs';
 import { switchMap } from 'rxjs/operators';
 
 @Component({
   selector: 'app-documents',
   standalone: true,
-  imports: [],
+  imports: [CommonModule, FileUploaderComponent],
   templateUrl: './documents.component.html',
   styleUrl: './documents.component.css'
 })
 export class DocumentsComponent implements OnInit, OnDestroy {
   private service = inject(DocumentService);
 
-  documents: DocumentStatus[] = [];
-  uploading = false;
-  uploadError: string | null = null;
-  isDragOver = false;
-  loadError = false;
+  documents   = signal<DocumentStatus[]>([]);
+  loadError   = signal(false);
+  uploadError = signal<string | null>(null);
+  uploading   = signal(false);
+  isDragging  = signal(false);
 
   private pollSub?: Subscription;
+  private dragCount = 0;
 
   ngOnInit(): void {
     this.loadDocuments();
@@ -30,67 +33,81 @@ export class DocumentsComponent implements OnInit, OnDestroy {
   }
 
   loadDocuments(): void {
-    this.loadError = false;
+    this.loadError.set(false);
     this.service.list().subscribe({
       next: docs => {
-        this.documents = docs;
-        if (docs.some(d => d.status === 'Processing')) {
-          this.startPolling();
-        }
+        this.documents.set(docs);
+        if (docs.some(d => d.status === 'Processing')) this.startPolling();
       },
-      error: () => (this.loadError = true)
+      error: () => this.loadError.set(true)
     });
+  }
+
+  // ── Drag and drop ────────────────────────────────────────────────────────
+
+  onDragEnter(e: DragEvent): void {
+    e.preventDefault();
+    if (++this.dragCount === 1) this.isDragging.set(true);
   }
 
   onDragOver(e: DragEvent): void {
     e.preventDefault();
-    this.isDragOver = true;
   }
 
   onDragLeave(): void {
-    this.isDragOver = false;
+    if (--this.dragCount === 0) this.isDragging.set(false);
   }
 
   onDrop(e: DragEvent): void {
     e.preventDefault();
-    this.isDragOver = false;
+    this.dragCount = 0;
+    this.isDragging.set(false);
     const file = e.dataTransfer?.files[0];
     if (file) this.uploadFile(file);
   }
 
-  onFileSelected(e: Event): void {
-    const file = (e.target as HTMLInputElement).files?.[0];
-    if (file) this.uploadFile(file);
-    (e.target as HTMLInputElement).value = '';
+  // ── Syncfusion uploader callbacks ────────────────────────────────────────
+
+  onRagUploadComplete(event: { fileName: string }): void {
+    this.uploadError.set(null);
+    this.documents.set([
+      { id: '', fileName: event.fileName, status: 'Processing', chunkCount: 0 },
+      ...this.documents()
+    ]);
+    this.startPolling();
   }
+
+  onUploadError(msg: string): void {
+    this.uploadError.set(msg);
+  }
+
+  // ── Internal ─────────────────────────────────────────────────────────────
 
   private uploadFile(file: File): void {
     if (!file.name.toLowerCase().endsWith('.pdf')) {
-      this.uploadError = 'Only PDF files are supported.';
+      this.uploadError.set('Only PDF files are supported.');
       return;
     }
     if (file.size > 50_000_000) {
-      this.uploadError = 'File exceeds the 50 MB limit.';
+      this.uploadError.set('File exceeds the 50 MB limit.');
       return;
     }
 
-    this.uploading = true;
-    this.uploadError = null;
+    this.uploading.set(true);
+    this.uploadError.set(null);
 
     this.service.upload(file).subscribe({
       next: res => {
-        this.uploading = false;
-        this.documents.unshift({
-          id: res.id,
-          fileName: res.fileName,
-          status: 'Processing',
-          chunkCount: 0
-        });
+        this.uploading.set(false);
+        this.documents.set([
+          { id: res.id, fileName: res.fileName, status: 'Processing', chunkCount: 0 },
+          ...this.documents()
+        ]);
         this.startPolling();
       },
       error: () => {
-        this.uploading = false;
-        this.uploadError = 'Upload failed. Please try again.';
+        this.uploading.set(false);
+        this.uploadError.set('Upload failed. Please try again.');
       }
     });
   }
@@ -101,19 +118,15 @@ export class DocumentsComponent implements OnInit, OnDestroy {
       .pipe(switchMap(() => this.service.list()))
       .subscribe({
         next: docs => {
-          this.documents = docs;
-          if (!docs.some(d => d.status === 'Processing')) {
-            this.pollSub?.unsubscribe();
-          }
+          this.documents.set(docs);
+          if (!docs.some(d => d.status === 'Processing')) this.pollSub?.unsubscribe();
         }
       });
   }
 
   formatDate(dateStr?: string): string {
     if (!dateStr) return '';
-    return new Date(dateStr).toLocaleDateString([], {
-      month: 'short', day: 'numeric', year: 'numeric'
-    });
+    return new Date(dateStr).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
   }
 
   chunks(n: number): string {

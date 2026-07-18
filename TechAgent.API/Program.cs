@@ -137,6 +137,12 @@ await using (var scope = app.Services.CreateAsyncScope())
 }
 
 app.UseCors("AllowAngular");
+
+// Serve files uploaded via the chat file-attach button from wwwroot/uploads/
+var uploadsDir = System.IO.Path.Combine(app.Environment.WebRootPath ?? System.IO.Path.Combine(Directory.GetCurrentDirectory(), "wwwroot"), "uploads");
+Directory.CreateDirectory(uploadsDir);
+app.UseStaticFiles();
+
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();

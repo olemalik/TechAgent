@@ -138,10 +138,53 @@ public class ChatController : ControllerBase
             .Where(h => h.SessionId == sessionId && !h.IsDeleted)
             .OrderBy(h => h.CreatedAt)
             .AsNoTracking()
-            .Select(h => new { h.Role, h.Message, h.CreatedAt, h.WasRefused })
+            .Select(h => new { h.Id, h.Role, h.Message, h.CreatedAt, h.WasRefused, h.FeedbackScore, h.AttachmentName, h.AttachmentUrl, h.AttachmentContentType })
             .ToListAsync(ct);
 
         return Ok(history);
+    }
+
+    /// <summary>
+    /// POST /api/chat/feedback
+    /// Records a thumbs up/down rating on an assistant message.
+    /// Messages rated +1 and optionally corrected are promoted to "golden" examples
+    /// that get injected as few-shot context in future prompts.
+    /// </summary>
+    [HttpPost("feedback")]
+    public async Task<IActionResult> Feedback([FromBody] FeedbackRequest req, CancellationToken ct)
+    {
+        if (req.Score is not (1 or -1))
+            return BadRequest("Score must be 1 (thumbs up) or -1 (thumbs down).");
+
+        await using var db = await _dbFactory.CreateDbContextAsync(ct);
+
+        var msg = await db.ChatHistory.FindAsync([req.MessageId], ct);
+        if (msg is null || msg.Role != "assistant" || msg.IsDeleted)
+            return NotFound("Assistant message not found.");
+
+        msg.FeedbackScore = req.Score;
+
+        if (!string.IsNullOrWhiteSpace(req.Correction))
+        {
+            // Store correction as a new golden entry so both the original and the
+            // corrected version are available to future prompts.
+            db.ChatHistory.Add(new ChatSessionHistory
+            {
+                SessionId = msg.SessionId,
+                Role = "assistant",
+                Message = req.Correction,
+                FeedbackScore = 1,
+                IsGolden = true
+            });
+        }
+        else if (req.Score == 1)
+        {
+            // Thumbs up with no correction → promote original answer to golden pool.
+            msg.IsGolden = true;
+        }
+
+        await db.SaveChangesAsync(ct);
+        return Ok(new { promoted = msg.IsGolden });
     }
 
     /// <summary>

@@ -11,11 +11,21 @@ export class ChatService {
   private readonly http = inject(HttpClient);
   private sessionId: string | null = localStorage.getItem(SESSION_KEY);
 
-  sendStreaming(message: string, signal: AbortSignal): Promise<ReadableStreamDefaultReader<Uint8Array>> {
+  sendStreaming(
+    message: string,
+    signal: AbortSignal,
+    attachment?: { name: string; url: string; contentType: string } | null
+  ): Promise<ReadableStreamDefaultReader<Uint8Array>> {
     return fetch(`${this.apiUrl}/stream`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message, sessionId: this.sessionId }),
+      body: JSON.stringify({
+        message,
+        sessionId: this.sessionId,
+        attachmentName: attachment?.name ?? null,
+        attachmentUrl: attachment?.url ?? null,
+        attachmentContentType: attachment?.contentType ?? null,
+      }),
       signal
     }).then(res => {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -47,5 +57,22 @@ export class ChatService {
   clearSession(): void {
     this.sessionId = null;
     localStorage.removeItem(SESSION_KEY);
+  }
+
+  submitFeedback(messageId: number, score: 1 | -1, correction?: string): Observable<{ promoted: boolean }> {
+    return this.http.post<{ promoted: boolean }>(`${this.apiUrl}/feedback`, {
+      messageId,
+      score,
+      correction: correction ?? null
+    });
+  }
+
+  uploadFile(file: File): Observable<{ fileName: string; url: string; contentType: string; sizeBytes: number }> {
+    const form = new FormData();
+    form.append('file', file);
+    return this.http.post<{ fileName: string; url: string; contentType: string; sizeBytes: number }>(
+      `${environment.apiUrl}/api/file/upload`,
+      form
+    );
   }
 }

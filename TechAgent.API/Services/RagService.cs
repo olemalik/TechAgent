@@ -86,7 +86,7 @@ public class RagService : IRagService
         var chunkIds = hits.Select(h => h.ChunkId).ToList();
         _log.LogInformation("Found {Count} chunks for query: {Query}", chunkIds.Count, request.Message);
 
-        // Step 4: Load parent chunks + conversation history from PostgreSQL
+        // Step 4: Load parent chunks + conversation history + golden examples from PostgreSQL
         await using var db = await _dbFactory.CreateDbContextAsync(ct);
 
         var chunks = chunkIds.Count > 0
@@ -105,11 +105,21 @@ public class RagService : IRagService
             .AsNoTracking()
             .ToListAsync(ct);
 
-        // Step 5: Build enriched prompt
+        // Fetch up to 3 golden Q&A pairs (highest-rated, expert-verified answers)
+        var goldenPairs = await db.ChatHistory
+            .Where(h => h.IsGolden && h.Role == "assistant" && !h.IsDeleted)
+            .OrderByDescending(h => h.FeedbackScore)
+            .Take(3)
+            .AsNoTracking()
+            .ToListAsync(ct);
+
+        // Step 5: Build enriched prompt with golden few-shot examples
         var prompt = BuildPrompt(
             request.Message,
+            request.AttachmentName,
             chunks.Select(c => (c.ParentText, c.FileName)).ToList(),
-            history);
+            history,
+            goldenPairs);
 
         // Step 6 + 7: Get answer — skip cache for conversational turns
         var answer = history.Count == 0
@@ -120,9 +130,10 @@ public class RagService : IRagService
                 cancellationToken: ct)
             : await _aiService.ChatAsync(prompt, ct);
 
-        // Step 8: Persist to PostgreSQL
+        // Step 8: Persist to PostgreSQL (include attachment metadata if present)
         var sources = chunks.Select(c => c.FileName).Distinct().ToList();
-        await PersistAsync(sessionId, request.Message, answer, refused: false, ct);
+        var assistantId = await PersistAsync(sessionId, request.Message, answer, refused: false, ct,
+            request.AttachmentName, request.AttachmentUrl, request.AttachmentContentType);
 
         _log.LogInformation(
             "RAG answer generated. SessionId: {SessionId}, Sources: {Sources}",
@@ -134,7 +145,8 @@ public class RagService : IRagService
             Reply = answer,
             IsSuccess = true,
             WasRefused = false,
-            Sources = sources
+            Sources = sources,
+            AssistantMessageId = assistantId
         };
     }
 
@@ -187,10 +199,19 @@ public class RagService : IRagService
             .AsNoTracking()
             .ToListAsync(ct);
 
+        var goldenPairs = await db.ChatHistory
+            .Where(h => h.IsGolden && h.Role == "assistant" && !h.IsDeleted)
+            .OrderByDescending(h => h.FeedbackScore)
+            .Take(3)
+            .AsNoTracking()
+            .ToListAsync(ct);
+
         var prompt = BuildPrompt(
             request.Message,
+            request.AttachmentName,
             chunks.Select(c => (c.ParentText, c.FileName)).ToList(),
-            history);
+            history,
+            goldenPairs);
 
         var fullText = new StringBuilder();
         await foreach (var token in _aiService.StreamAsync(prompt, ct))
@@ -199,20 +220,33 @@ public class RagService : IRagService
             yield return new RagStreamChunk { Type = "token", Value = token };
         }
 
-        await PersistAsync(sessionId, request.Message, fullText.ToString(), refused: false, ct);
-        yield return new RagStreamChunk { Type = "done", SessionId = sessionId, WasRefused = false };
+        var assistantId = await PersistAsync(sessionId, request.Message, fullText.ToString(), refused: false, ct,
+            request.AttachmentName, request.AttachmentUrl, request.AttachmentContentType);
+        yield return new RagStreamChunk { Type = "done", SessionId = sessionId, WasRefused = false, AssistantMessageId = assistantId };
     }
 
     // ── Prompt Builder ────────────────────────────────────────────────────────
 
     private static string BuildPrompt(
         string question,
+        string? attachmentName,
         IReadOnlyList<(string ParentText, string FileName)> chunks,
-        IReadOnlyList<ChatSessionHistory> history)
+        IReadOnlyList<ChatSessionHistory> history,
+        IReadOnlyList<ChatSessionHistory> goldenPairs)
     {
         var sb = new StringBuilder();
 
-        // 1. Document context first (most important for grounding)
+        // 0. Few-shot golden examples first — ground the model in verified expert answers
+        if (goldenPairs.Count > 0)
+        {
+            sb.AppendLine("[VERIFIED EXAMPLES — expert-confirmed answers]");
+            foreach (var pair in goldenPairs)
+                sb.AppendLine($"EXAMPLE ANSWER: {pair.Message}");
+            sb.AppendLine("[END EXAMPLES]");
+            sb.AppendLine();
+        }
+
+        // 1. Document context (most important for grounding)
         if (chunks.Count > 0)
         {
             sb.AppendLine("[CONTEXT START]");
@@ -231,7 +265,7 @@ public class RagService : IRagService
             sb.AppendLine("No document context available. Answer from Oil & Gas training knowledge only.");
         }
 
-        // 2. Conversation history second
+        // 2. Conversation history
         if (history.Count > 0)
         {
             sb.AppendLine("\nCONVERSATION HISTORY:");
@@ -239,45 +273,55 @@ public class RagService : IRagService
                 sb.AppendLine($"{h.Role.ToUpper()}: {h.Message}");
         }
 
-        // 3. Question last
+        // 3. Question last (mention attachment if present so the model is aware)
+        if (attachmentName is not null)
+            sb.AppendLine($"\n[User attached a file: {attachmentName}]");
+
         sb.AppendLine($"\nQUESTION: {question}");
         sb.AppendLine("ANSWER:");
-
         return sb.ToString();
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
-    private async Task PersistAsync(
+    // Returns the DB row ID of the assistant message so the client can reference it for feedback.
+    private async Task<long> PersistAsync(
         Guid sessionId,
         string question,
         string answer,
         bool refused,
-        CancellationToken ct)
+        CancellationToken ct,
+        string? attachmentName = null,
+        string? attachmentUrl = null,
+        string? attachmentContentType = null)
     {
         try
         {
             await using var db = await _dbFactory.CreateDbContextAsync(ct);
-            db.ChatHistory.AddRange(
-                new ChatSessionHistory
-                {
-                    SessionId = sessionId,
-                    Role = "user",
-                    Message = question
-                },
-                new ChatSessionHistory
-                {
-                    SessionId = sessionId,
-                    Role = "assistant",
-                    Message = answer,
-                    WasRefused = refused
-                });
+            var userMsg = new ChatSessionHistory
+            {
+                SessionId = sessionId,
+                Role = "user",
+                Message = question,
+                AttachmentName = attachmentName,
+                AttachmentUrl = attachmentUrl,
+                AttachmentContentType = attachmentContentType
+            };
+            var assistantMsg = new ChatSessionHistory
+            {
+                SessionId = sessionId,
+                Role = "assistant",
+                Message = answer,
+                WasRefused = refused
+            };
+            db.ChatHistory.AddRange(userMsg, assistantMsg);
             await db.SaveChangesAsync(ct);
+            return assistantMsg.Id;
         }
         catch (Exception ex)
         {
-            // Log but don't rethrow — user still gets their answer
             _log.LogError(ex, "Failed to persist chat history for session {SessionId}", sessionId);
+            return 0;
         }
     }
 

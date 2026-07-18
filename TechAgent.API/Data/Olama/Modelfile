@@ -18,6 +18,6 @@ RULES:
 4. Use proper industry terminology.
 """
 
-PARAMETER temperature 0.3
+PARAMETER temperature 0.1
 PARAMETER top_p 0.9
 PARAMETER num_ctx 4096

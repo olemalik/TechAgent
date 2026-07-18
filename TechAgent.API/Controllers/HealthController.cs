@@ -67,7 +67,7 @@ public class HealthController : ControllerBase
             },
             models = new
             {
-                chat = _config["Ollama:ONGModelName"] ?? "oilgas-assistant",
+                chat = _config["Ollama:ChatModel"] ?? "oilgas-assistant",
                 embedding = _config["Ollama:EmbeddingModel"] ?? "nomic-embed-text"
             },
             timestamp = DateTimeOffset.UtcNow

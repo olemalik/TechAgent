@@ -1,4 +1,7 @@
 @import "@syncfusion/ej2-interactive-chat/styles/material.css";
+@import "@syncfusion/ej2-inputs/styles/material.css";
+@import "@syncfusion/ej2-base/styles/material.css";
+@import "@syncfusion/ej2-buttons/styles/material.css";
 
 /* ── Reset ───────────────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -56,6 +59,19 @@ html, body, app-root {
   --typing-bg:            #2a2a2a;
   --typing-border:        rgba(255,255,255,0.08);
   --typing-dot:           rgba(255,255,255,0.45);
+
+  --badge-bg:             rgba(255,255,255,0.08);
+  --badge-border:         rgba(255,255,255,0.15);
+  --badge-text:           rgba(255,255,255,0.82);
+  --uploader-bg:          #2a2a2a;
+  --uploader-border:      rgba(255,255,255,0.1);
+  --uploader-text:        rgba(255,255,255,0.82);
+  --uploader-icon:        rgba(255,255,255,0.4);
+  --error-bg:             rgba(239,68,68,0.12);
+  --error-text:           #f87171;
+  --error-border:         rgba(239,68,68,0.2);
+  --kbd-bg:               #2f2f2f;
+  --kbd-border:           rgba(255,255,255,0.1);
 }
 
 /* ── Design tokens — LIGHT ───────────────────────────────────────────── */
@@ -105,6 +121,19 @@ html, body, app-root {
   --typing-bg:            #f0f0f0;
   --typing-border:        rgba(0,0,0,0.08);
   --typing-dot:           rgba(0,0,0,0.4);
+
+  --badge-bg:             rgba(59,130,246,0.1);
+  --badge-border:         rgba(59,130,246,0.25);
+  --badge-text:           #1e40af;
+  --uploader-bg:          #f4f4f4;
+  --uploader-border:      rgba(0,0,0,0.12);
+  --uploader-text:        rgba(0,0,0,0.82);
+  --uploader-icon:        rgba(0,0,0,0.4);
+  --error-bg:             rgba(239,68,68,0.08);
+  --error-text:           #dc2626;
+  --error-border:         rgba(239,68,68,0.15);
+  --kbd-bg:               #f0f0f0;
+  --kbd-border:           rgba(0,0,0,0.12);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -190,3 +219,73 @@ html, body, app-root {
 /* ── Hide Syncfusion copy button ─────────────────────────────────────── */
 .e-chat-message-toolbar,
 .e-chat-copy { display: none !important; }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Syncfusion Uploader overrides — themed via CSS variables
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* Drop zone / wrapper */
+.e-upload,
+.e-upload.e-control-wrapper {
+  background: var(--uploader-bg) !important;
+  border: 1.5px dashed var(--uploader-border) !important;
+  border-radius: 12px !important;
+  padding: 16px !important;
+  transition: background 0.2s, border-color 0.2s !important;
+}
+
+.e-upload:hover,
+.e-upload.e-drag-hover {
+  border-color: var(--input-border-focus) !important;
+  background: var(--input-bg-focus) !important;
+}
+
+/* Drop-zone text */
+.e-upload .e-upload-drag-message,
+.e-upload .e-file-drop {
+  color: var(--uploader-text) !important;
+}
+
+.e-upload .e-file-select-wrap .e-btn,
+.e-upload .e-css.e-btn {
+  background: var(--input-bg) !important;
+  color: var(--input-text) !important;
+  border-color: var(--input-border) !important;
+  box-shadow: none !important;
+}
+
+/* File list items */
+.e-upload .e-upload-files,
+.e-upload .e-file-container {
+  background: transparent !important;
+  border-top: 1px solid var(--uploader-border) !important;
+}
+
+.e-upload .e-file-name,
+.e-upload .e-file-type,
+.e-upload .e-file-size,
+.e-upload .e-upload-file-name {
+  color: var(--uploader-text) !important;
+}
+
+.e-upload .e-file-status {
+  color: var(--sidebar-text-muted) !important;
+}
+
+/* Progress bar */
+.e-upload .e-progress-inner-wrap {
+  background: var(--uploader-border) !important;
+}
+
+.e-upload .e-progress-bar-inner-wrap {
+  background: #3b82f6 !important;
+}
+
+/* Action icons (remove, retry) */
+.e-upload .e-icons {
+  color: var(--sidebar-text-muted) !important;
+}
+
+.e-upload .e-icons:hover {
+  color: var(--input-text) !important;
+}

@@ -1,0 +1,97 @@
+.input-wrapper {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  padding: 10px 10px 10px 4px;
+  border-radius: 16px;
+  border: 1.5px solid var(--input-border);
+  background: var(--input-bg);
+  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+}
+
+.input-wrapper.active,
+.input-wrapper:focus-within {
+  border-color: var(--input-border-focus);
+  background: var(--input-bg-focus);
+  box-shadow: 0 0 0 3px var(--sidebar-hover);
+}
+
+textarea {
+  flex: 1;
+  resize: none;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: var(--input-text);
+  -webkit-text-fill-color: var(--input-text);
+  caret-color: var(--input-text);
+  font-family: inherit;
+  min-height: 24px;
+  max-height: 160px;
+  overflow-y: auto;
+}
+
+textarea::placeholder {
+  color: var(--input-placeholder);
+  -webkit-text-fill-color: var(--input-placeholder);
+}
+
+textarea:disabled {
+  opacity: 0.6;
+}
+
+/* ── Send button ─────────────────────────────────────────────────────────── */
+.send-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: none;
+  background: var(--send-btn-bg);
+  color: var(--send-btn-color);
+  cursor: not-allowed;
+  transition: background 0.15s, color 0.15s, transform 0.1s;
+  flex-shrink: 0;
+}
+
+.send-btn.ready {
+  background: #e07b00;
+  color: #fff;
+  cursor: pointer;
+}
+
+.send-btn.ready:hover {
+  background: #c96e00;
+  transform: scale(1.05);
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* ── Footer hint ─────────────────────────────────────────────────────────── */
+.footer-hint {
+  text-align: center;
+  font-size: 0.72rem;
+  color: var(--sidebar-text-muted);
+  margin: 6px 0 0;
+}
+
+kbd {
+  padding: 1px 5px;
+  border-radius: 4px;
+  border: 1px solid var(--kbd-border);
+  background: var(--kbd-bg);
+  font-family: inherit;
+  font-size: 0.7rem;
+  color: var(--input-text);
+}

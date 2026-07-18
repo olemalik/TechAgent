@@ -1,3 +1,5 @@
+using Microsoft.Extensions.AI;
+
 namespace OilGasAI.API.Models;
 
 // ── Ollama /api/embed (nomic-embed-text) ─────────────────────────────────────
@@ -20,6 +22,20 @@ public class RagChatRequest
     public Guid? SessionId { get; set; }
 
     public List<ChatMessage> History { get; set; } = new();
+
+    /// <summary>Optional file attached by the user — returned from POST /api/files/upload.</summary>
+    public string? AttachmentName { get; set; }
+    public string? AttachmentUrl { get; set; }
+    public string? AttachmentContentType { get; set; }
+}
+
+/// <summary>Returned by POST /api/files/upload.</summary>
+public class FileUploadResponse
+{
+    public string FileName { get; set; } = string.Empty;
+    public string Url { get; set; } = string.Empty;
+    public string ContentType { get; set; } = string.Empty;
+    public long SizeBytes { get; set; }
 }
 
 public class RagChatResponse
@@ -33,6 +49,9 @@ public class RagChatResponse
     public List<string> Sources { get; set; } = new();
 
     public string? Error { get; set; }
+
+    /// <summary>DB row ID of the assistant message — used by the client to submit feedback.</summary>
+    public long? AssistantMessageId { get; set; }
 }
 
 // ── Document ingestion ────────────────────────────────────────────────────────
@@ -64,6 +83,23 @@ public class RagStreamChunk
     public string? Value { get; set; }
     public Guid? SessionId { get; set; }
     public bool WasRefused { get; set; }
+
+    /// <summary>DB row ID of the assistant message — present only on the "done" event.</summary>
+    public long? AssistantMessageId { get; set; }
+}
+
+// ── Feedback ──────────────────────────────────────────────────────────────────
+
+public class FeedbackRequest
+{
+    /// <summary>DB row ID of the assistant message being rated.</summary>
+    public long MessageId { get; set; }
+
+    /// <summary>1 = thumbs up, -1 = thumbs down.</summary>
+    public int Score { get; set; }
+
+    /// <summary>Optional correction the user provides when the answer was wrong.</summary>
+    public string? Correction { get; set; }
 }
 
 // ── Domain entities added to support RAG ─────────────────────────────────────
@@ -79,4 +115,14 @@ public class ChatSessionHistory
     public bool WasRefused { get; set; }
     public bool IsDeleted { get; set; }
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+
+    // Feedback loop — populated after user rates an assistant message
+    public int? FeedbackScore { get; set; }           // 1 = thumbs up, -1 = thumbs down
+    public string? UserCorrection { get; set; }       // optional correction text from user
+    public bool IsGolden { get; set; }                // promoted to few-shot example pool
+
+    // File attachment — optional, populated when the user attaches a file to their message
+    public string? AttachmentName { get; set; }       // original file name shown in UI
+    public string? AttachmentUrl { get; set; }        // served path e.g. /uploads/guid.pdf
+    public string? AttachmentContentType { get; set; }
 }

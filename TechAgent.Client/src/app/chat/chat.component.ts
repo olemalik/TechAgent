@@ -1,52 +1,55 @@
 import {
-  Component, AfterViewInit, OnDestroy, ViewChild, ElementRef,
-  Output, EventEmitter, inject, NgZone, ChangeDetectorRef, DestroyRef
+  Component, OnInit, OnDestroy, Output, EventEmitter, ViewChild,
+  signal, computed, inject, NgZone, DestroyRef
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { ChatUIModule } from '@syncfusion/ej2-angular-interactive-chat';
-import { MessageModel } from '@syncfusion/ej2-interactive-chat';
 import { ChatService } from './chat.service';
+import { ChatInputComponent, SendEvent } from './chat-input/chat-input.component';
+import { ChatMessagesComponent, AiMessage, FeedbackEvent } from './chat-messages/chat-messages.component';
 
 @Component({
   selector: 'app-chat',
   standalone: true,
-  imports: [ChatUIModule],
+  imports: [ChatInputComponent, ChatMessagesComponent],
   templateUrl: './chat.component.html',
   styleUrl: './chat.component.css'
 })
-export class ChatComponent implements AfterViewInit, OnDestroy {
-  @ViewChild('messageInput') messageInput!: ElementRef<HTMLTextAreaElement>;
+export class ChatComponent implements OnInit, OnDestroy {
   @Output() sessionCreated = new EventEmitter<string>();
+  @ViewChild(ChatInputComponent) chatInput!: ChatInputComponent;
 
   private chatService = inject(ChatService);
-  private ngZone = inject(NgZone);
-  private cd = inject(ChangeDetectorRef);
-  private destroyRef = inject(DestroyRef);
+  private ngZone      = inject(NgZone);
+  private destroyRef  = inject(DestroyRef);
 
   readonly currentUser = { id: 'user1', user: 'You' };
-  readonly aiUser   = { id: 'ai1',   user: 'TechAgent AI' };
+  readonly aiUser      = { id: 'ai1',   user: 'TechAgent AI' };
 
-  messages: MessageModel[] = [];
-  isLoading   = false;
-  hasMessages = false;
-  inputHasText = false;
+  messages    = signal<AiMessage[]>([]);
+  isLoading   = signal(false);
+  isDragging  = signal(false);
+  hasMessages = computed(() => this.messages().length > 0);
 
   private streamAbort?: AbortController;
+  private dragCount = 0;
 
-  ngAfterViewInit(): void {
+  ngOnInit(): void {
     if (!this.chatService.getSessionId()) return;
-
     this.chatService.getHistory()
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: history => {
           if (!history.length) return;
-          this.messages = history.map(h => ({
+          this.messages.set(history.map(h => ({
             text: h.message,
             author: h.role === 'user' ? this.currentUser : this.aiUser,
-            timeStamp: new Date(h.createdAt)
-          }));
-          this.hasMessages = true;
+            timeStamp: new Date(h.createdAt),
+            dbId: h.role === 'assistant' ? h.id : undefined,
+            feedbackScore: h.feedbackScore ?? null,
+            attachment: h.attachmentUrl
+              ? { name: h.attachmentName!, url: h.attachmentUrl, contentType: h.attachmentContentType ?? '' }
+              : null
+          })));
         },
         error: () => this.chatService.clearSession()
       });
@@ -56,39 +59,62 @@ export class ChatComponent implements AfterViewInit, OnDestroy {
     this.streamAbort?.abort();
   }
 
-  onInput(event: Event): void {
-    this.inputHasText = (event.target as HTMLTextAreaElement).value.trim().length > 0;
+  onDragEnter(e: DragEvent): void {
+    e.preventDefault();
+    if (++this.dragCount === 1) this.isDragging.set(true);
   }
 
-  onEnterKey(event: Event): void {
-    const ke = event as KeyboardEvent;
-    if (ke.shiftKey) return;
-    ke.preventDefault();
-    this.sendMessage();
+  onDragOver(e: DragEvent): void {
+    e.preventDefault();
   }
 
-  sendMessage(): void {
-    const userText = this.messageInput.nativeElement.value.trim();
-    if (!userText || this.isLoading) return;
+  onDragLeave(): void {
+    if (--this.dragCount === 0) this.isDragging.set(false);
+  }
 
-    this.messageInput.nativeElement.value = '';
-    this.inputHasText = false;
-    this.hasMessages  = true;
-    this.isLoading    = true;
+  onDrop(e: DragEvent): void {
+    e.preventDefault();
+    this.dragCount = 0;
+    this.isDragging.set(false);
+    const file = e.dataTransfer?.files[0];
+    if (file) this.chatInput?.acceptDrop(file);
+  }
 
-    // Add user bubble + empty AI placeholder via the messages binding
-    this.messages = [
-      ...this.messages,
-      { text: userText, author: this.currentUser, timeStamp: new Date() },
-      { text: '',       author: this.aiUser,       timeStamp: new Date() }
-    ];
-    const aiIdx = this.messages.length - 1;
+  onSend(event: SendEvent): void {
+    this.startStream(event.text, event.attachment);
+  }
+
+  onFeedback(event: FeedbackEvent): void {
+    const { msg, score } = event;
+    if (!msg.dbId || msg.feedbackScore !== null) return;
+
+    this.chatService.submitFeedback(msg.dbId, score).subscribe({
+      next: () => {
+        const idx = this.messages().indexOf(msg);
+        if (idx === -1) return;
+        const next = [...this.messages()];
+        next[idx] = { ...next[idx], feedbackScore: score };
+        this.messages.set(next);
+      }
+    });
+  }
+
+  private startStream(text: string, attachment: { name: string; url: string; contentType: string } | null): void {
+    this.isLoading.set(true);
+
+    const userMsg: AiMessage = {
+      text,
+      author: this.currentUser,
+      timeStamp: new Date(),
+      attachment
+    };
+    this.messages.set([...this.messages(), userMsg, { text: '', author: this.aiUser, timeStamp: new Date() }]);
+    const aiIdx = this.messages().length - 1;
 
     this.streamAbort = new AbortController();
 
-    // Run fetch outside Angular zone so CD doesn't fire on every read() call
     this.ngZone.runOutsideAngular(() => {
-      this.chatService.sendStreaming(userText, this.streamAbort!.signal)
+      this.chatService.sendStreaming(text, this.streamAbort!.signal, attachment ?? undefined)
         .then(async reader => {
           let accumulated = '';
           let buffer      = '';
@@ -111,23 +137,25 @@ export class ChatComponent implements AfterViewInit, OnDestroy {
 
                   if (evt.type === 'token' && evt.value) {
                     accumulated += evt.value;
-                    // Replace the AI placeholder with updated text
                     this.ngZone.run(() => {
-                      const next = [...this.messages];
+                      const next = [...this.messages()];
                       next[aiIdx] = { ...next[aiIdx], text: accumulated };
-                      this.messages = next;
-                      this.cd.detectChanges();
+                      this.messages.set(next);
                     });
 
                   } else if (evt.type === 'done') {
                     this.ngZone.run(() => {
-                      this.isLoading = false;
+                      this.isLoading.set(false);
+                      if (evt.assistantMessageId) {
+                        const next = [...this.messages()];
+                        next[aiIdx] = { ...next[aiIdx], dbId: evt.assistantMessageId, feedbackScore: null };
+                        this.messages.set(next);
+                      }
                       if (evt.sessionId) {
                         const isNew = !this.chatService.getSessionId();
                         this.chatService.setSessionId(evt.sessionId);
                         if (isNew) this.sessionCreated.emit(evt.sessionId);
                       }
-                      this.cd.detectChanges();
                     });
                     return;
                   }
@@ -145,13 +173,12 @@ export class ChatComponent implements AfterViewInit, OnDestroy {
   }
 
   private onStreamError(aiIdx: number, partial: string): void {
-    const next = [...this.messages];
+    const next = [...this.messages()];
     next[aiIdx] = {
       ...next[aiIdx],
       text: partial || 'Connection error. Please ensure the API server is running on port 5073.'
     };
-    this.messages  = next;
-    this.isLoading = false;
-    this.cd.detectChanges();
+    this.messages.set(next);
+    this.isLoading.set(false);
   }
 }

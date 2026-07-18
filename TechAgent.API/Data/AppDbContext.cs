@@ -59,6 +59,9 @@ public class AppDbContext : DbContext
             b.HasKey(h => h.Id);
             b.Property(h => h.Role).HasMaxLength(16).IsRequired();
             b.Property(h => h.Message).IsRequired();
+            b.Property(h => h.AttachmentName).HasMaxLength(500);
+            b.Property(h => h.AttachmentUrl).HasMaxLength(1000);
+            b.Property(h => h.AttachmentContentType).HasMaxLength(100);
             b.HasIndex(h => new { h.SessionId, h.CreatedAt });
         });
     }

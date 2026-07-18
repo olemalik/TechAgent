@@ -1,4 +1,24 @@
-<div class="docs-panel">
+<div class="docs-panel"
+  (dragenter)="onDragEnter($event)"
+  (dragover)="onDragOver($event)"
+  (dragleave)="onDragLeave()"
+  (drop)="onDrop($event)">
+
+  <!-- Drop overlay -->
+  @if (isDragging()) {
+    <div class="drop-overlay">
+      <div class="drop-overlay-inner">
+        <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24"
+          fill="none" stroke="currentColor" stroke-width="1.5"
+          stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="16 16 12 12 8 16"/>
+          <line x1="12" y1="12" x2="12" y2="21"/>
+          <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/>
+        </svg>
+        <span>Drop PDF to upload</span>
+      </div>
+    </div>
+  }
 
   <!-- Header -->
   <div class="docs-header">
@@ -8,64 +28,50 @@
     </div>
   </div>
 
-  <!-- Drop zone -->
-  <div class="upload-zone"
-       [class.drag-over]="isDragOver"
-       [class.uploading]="uploading"
-       (dragover)="onDragOver($event)"
-       (dragleave)="onDragLeave()"
-       (drop)="onDrop($event)"
-       (click)="!uploading && fileInput.click()">
-
-    <input #fileInput type="file" accept=".pdf" hidden (change)="onFileSelected($event)" />
-
-    @if (uploading) {
-      <div class="spinner"></div>
-      <span class="zone-label">Uploading…</span>
+  <!-- Syncfusion uploader (also supports its own drag zone) -->
+  <div class="uploader-wrapper" [class.uploading]="uploading()">
+    @if (uploading()) {
+      <div class="uploading-indicator">
+        <div class="spinner"></div>
+        <span>Uploading…</span>
+      </div>
     } @else {
-      <svg class="zone-icon" xmlns="http://www.w3.org/2000/svg" width="32" height="32"
-           viewBox="0 0 24 24" fill="none" stroke="currentColor"
-           stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-        <polyline points="16 16 12 12 8 16"/>
-        <line x1="12" y1="12" x2="12" y2="21"/>
-        <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/>
-      </svg>
-      <span class="zone-label">Drop a PDF here or <strong>click to browse</strong></span>
-      <span class="zone-hint">PDF only &nbsp;·&nbsp; max 50 MB</span>
+      <app-file-uploader
+        mode="rag"
+        (ragUploadComplete)="onRagUploadComplete($event)"
+        (uploadError)="onUploadError($event)" />
     }
   </div>
 
-  @if (uploadError) {
-    <div class="upload-error">{{ uploadError }}</div>
+  @if (uploadError()) {
+    <div class="upload-error">{{ uploadError() }}</div>
   }
 
   <!-- Document list -->
   <div class="list-section">
     <span class="list-heading">Uploaded Documents</span>
 
-    @if (loadError) {
+    @if (loadError()) {
       <div class="empty-state">
         Could not load documents.
         <button class="retry-btn" (click)="loadDocuments()">Retry</button>
       </div>
-    } @else if (documents.length === 0) {
+    } @else if (documents().length === 0) {
       <div class="empty-state">No documents uploaded yet.</div>
     } @else {
       <div class="doc-list">
-        @for (doc of documents; track doc.id) {
+        @for (doc of documents(); track doc.id) {
           <div class="doc-item">
 
-            <!-- PDF icon -->
             <div class="doc-icon">
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18"
-                   viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                   stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                 <polyline points="14 2 14 8 20 8"/>
               </svg>
             </div>
 
-            <!-- Name + meta -->
             <div class="doc-info">
               <span class="doc-name" [title]="doc.fileName">{{ doc.fileName }}</span>
               <span class="doc-meta">
@@ -79,7 +85,6 @@
               </span>
             </div>
 
-            <!-- Status badge -->
             <span class="badge" [class]="'badge-' + doc.status.toLowerCase()">
               @if (doc.status === 'Processing') {
                 <span class="dot dot-spin"></span>

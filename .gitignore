@@ -33,3 +33,5 @@ Thumbs.db
 .env
 .env.*
 .vscode/extensions.json
+TechAgent.API/wwwroot/*
+TechAgent.Client/package-lock.json
