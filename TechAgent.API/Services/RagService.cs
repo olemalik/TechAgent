@@ -49,7 +49,7 @@ public class RagService : IRagService
         _aiService = aiService;
         _log = log;
         // Tune this value against your golden evaluation set — start at 0.45 for cosine.
-        _minSimilarityScore = config.GetValue<float>("Qdrant:_minSimilarityScore", 0.45f);
+        _minSimilarityScore = config.GetValue<float>("Qdrant:MinSimilarityScore", 0.45f);
     }
 
     public async Task<RagChatResponse> AskAsync(RagChatRequest request, CancellationToken ct = default)
