@@ -12,12 +12,16 @@ You have deep knowledge of:
 - Terminology: BOPD, GOR, WOR, NPT, FPSO, LNG, LPG
 
 RULES:
-1. Only answer questions related to Oil & Gas industry.
-2. If asked about unrelated topics, respond: "I'm specialized only in Oil & Gas industry topics. Please ask me something related to upstream, midstream, or downstream operations."
-3. Always cite safety standards when relevant.
-4. Use proper industry terminology.
+1. When document context is provided, base your answer on it and quote the relevant section verbatim.
+2. If the provided context does not contain the answer, say so explicitly — do not invent facts.
+3. Always cite the source document name and relevant standard (API, ISO, OSHA) when applicable.
+4. Use precise industry terminology. Prefer structured answers with bullet points for procedures.
+5. For safety-critical topics (well control, H2S, fire & gas, permit to work), always flag applicable standards.
 """
 
+# Raised from 4096 — 4 parent chunks × 600 words ≈ 3,200 tokens before history and question.
+# At 4096 context was silently truncating, causing inaccurate answers.
+PARAMETER num_ctx 8192
 PARAMETER temperature 0.1
 PARAMETER top_p 0.9
-PARAMETER num_ctx 4096
+PARAMETER stop "<|eot_id|>"

@@ -31,12 +31,15 @@ public class RagService : IRagService
     private const int MaxHistoryTurns = 8;
     private const int TopK = 4;
 
+    private readonly float _minSimilarityScore;
+
     public RagService(
         IDbContextFactory<AppDbContext> dbFactory,
         IQdrantService qdrant,
         IDomainGuardService guard,
         HybridCache cache,
         IAIService aiService,
+        IConfiguration config,
         ILogger<RagService> log)
     {
         _dbFactory = dbFactory;
@@ -45,6 +48,8 @@ public class RagService : IRagService
         _cache = cache;
         _aiService = aiService;
         _log = log;
+        // Tune this value against your golden evaluation set — start at 0.45 for cosine.
+        _minSimilarityScore = config.GetValue<float>("Qdrant:_minSimilarityScore", 0.45f);
     }
 
     public async Task<RagChatResponse> AskAsync(RagChatRequest request, CancellationToken ct = default)
@@ -81,21 +86,32 @@ public class RagService : IRagService
             };
         }
 
-        // Step 3: Vector search — find top-4 relevant chunks
+        // Step 3: Vector search — find top-4 relevant chunks, drop low-confidence hits
         var hits = await _qdrant.SearchAsync(queryVec, TopK, ct);
-        var chunkIds = hits.Select(h => h.ChunkId).ToList();
-        _log.LogInformation("Found {Count} chunks for query: {Query}", chunkIds.Count, request.Message);
+        var relevantHits = hits.Where(h => h.Score >= _minSimilarityScore).ToList();
+        var chunkIds = relevantHits.Select(h => h.ChunkId).ToList();
+        _log.LogInformation(
+            "Qdrant returned {Total} hits; {Kept} above score threshold {Threshold} for query: {Query}",
+            hits.Count, chunkIds.Count, _minSimilarityScore, request.Message);
 
         // Step 4: Load parent chunks + conversation history + golden examples from PostgreSQL
         await using var db = await _dbFactory.CreateDbContextAsync(ct);
 
-        var chunks = chunkIds.Count > 0
+        // Fetch chunks then re-order by Qdrant relevance score — DB order is arbitrary,
+        // and LLMs weight earlier context more heavily.
+        var rawChunks = chunkIds.Count > 0
             ? await db.DocumentChunks
                 .Where(c => chunkIds.Contains(c.Id))
-                .Select(c => new { c.ParentText, c.Document.FileName })
+                .Select(c => new { c.Id, c.ParentText, c.Document.FileName })
                 .AsNoTracking()
                 .ToListAsync(ct)
             : [];
+
+        var chunkLookup = rawChunks.ToDictionary(c => c.Id);
+        var chunks = relevantHits
+            .Where(h => chunkLookup.ContainsKey(h.ChunkId))
+            .Select(h => chunkLookup[h.ChunkId])
+            .ToList();
 
         var history = await db.ChatHistory
             .Where(h => h.SessionId == sessionId && !h.IsDeleted)
@@ -181,15 +197,25 @@ public class RagService : IRagService
         await using var db = await _dbFactory.CreateDbContextAsync(ct);
 
         var hits = await _qdrant.SearchAsync(queryVec, TopK, ct);
-        var chunkIds = hits.Select(h => h.ChunkId).ToList();
+        var relevantHits = hits.Where(h => h.Score >= _minSimilarityScore).ToList();
+        var chunkIds = relevantHits.Select(h => h.ChunkId).ToList();
+        _log.LogInformation(
+            "Qdrant returned {Total} hits; {Kept} above threshold {Threshold}",
+            hits.Count, chunkIds.Count, _minSimilarityScore);
 
-        var chunks = chunkIds.Count > 0
+        var rawChunks = chunkIds.Count > 0
             ? await db.DocumentChunks
                 .Where(c => chunkIds.Contains(c.Id))
-                .Select(c => new { c.ParentText, c.Document.FileName })
+                .Select(c => new { c.Id, c.ParentText, c.Document.FileName })
                 .AsNoTracking()
                 .ToListAsync(ct)
             : [];
+
+        var chunkLookup = rawChunks.ToDictionary(c => c.Id);
+        var chunks = relevantHits
+            .Where(h => chunkLookup.ContainsKey(h.ChunkId))
+            .Select(h => chunkLookup[h.ChunkId])
+            .ToList();
 
         var history = await db.ChatHistory
             .Where(h => h.SessionId == sessionId && !h.IsDeleted)
