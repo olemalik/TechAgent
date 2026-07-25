@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Threading.Channels;
 using Microsoft.EntityFrameworkCore;
 using OilGasAI.API.Interfaces;
@@ -39,8 +40,9 @@ public class DocumentIngestionService : IDocumentIngestionService
     private readonly IQdrantService _qdrant;
     private readonly DocumentIngestionQueue _queue;
     private readonly ILogger<DocumentIngestionService> _log;
+    private readonly float _conflictThreshold;
 
-    private const long MaxFileSizeBytes = 50 * 1024 * 1024; // 50 MB
+    private const long MaxFileSizeBytes = 50 * 1024 * 1024;
     private const int EmbeddingBatchSize = 10;
 
     public DocumentIngestionService(
@@ -48,6 +50,7 @@ public class DocumentIngestionService : IDocumentIngestionService
         IAIService aiService,
         IQdrantService qdrant,
         DocumentIngestionQueue queue,
+        IConfiguration config,
         ILogger<DocumentIngestionService> log)
     {
         _dbFactory = dbFactory;
@@ -55,6 +58,9 @@ public class DocumentIngestionService : IDocumentIngestionService
         _qdrant = qdrant;
         _queue = queue;
         _log = log;
+        // Minimum centroid similarity required to flag a conflict. Below this the documents
+        // are treated as unrelated regardless of content overlap.
+        _conflictThreshold = config.GetValue<float>("Documents:ConflictSimilarityThreshold", 0.55f);
     }
 
     // ── QueueAsync ────────────────────────────────────────────────────────────
@@ -169,18 +175,63 @@ public class DocumentIngestionService : IDocumentIngestionService
                 ParentText = p.ParentText,
                 ChunkIndex = p.ChunkIndex
             }));
-
-            // Step 5: Upsert child embeddings into Qdrant
-            await _qdrant.UpsertChunksAsync(allChunks, ct);
-
-            // Step 6: Mark as indexed
             doc.ChunkCount = pairs.Count;
-            doc.Status = DocumentStatus.Indexed;
-            doc.IndexedAt = DateTimeOffset.UtcNow;
 
-            _log.LogInformation(
-                "Document {Id} '{Name}' indexed successfully with {N} chunks.",
-                documentId, doc.FileName, pairs.Count);
+            // Step 5: Compute full-document fingerprint (centroid of all chunk embeddings).
+            // Using ALL chunk vectors gives a semantic fingerprint that represents every page,
+            // every section — not just the opening paragraph.
+            var centroid = ComputeCentroid(allChunks.Select(c => c.Vector).ToList());
+            doc.FingerprintJson = JsonSerializer.Serialize(centroid);
+
+            // Step 6: Compare fingerprint against every already-indexed document.
+            // Always surface conflicts to the user — they decide what to do.
+            // The similarity % is shown so they can judge relevance themselves.
+            var existingDocs = await db.Documents
+                .Where(d => d.Id != documentId
+                         && d.Status == DocumentStatus.Indexed
+                         && d.FingerprintJson != null)
+                .Select(d => new { d.Id, d.FileName, d.FingerprintJson })
+                .AsNoTracking()
+                .ToListAsync(ct);
+
+            var conflicts = new List<DocumentConflict>();
+            foreach (var existing in existingDocs)
+            {
+                var existingFp = JsonSerializer.Deserialize<float[]>(existing.FingerprintJson!);
+                if (existingFp is null) continue;
+                var sim = CosineSimilarity(centroid, existingFp);
+                if (sim >= _conflictThreshold)
+                    conflicts.Add(new DocumentConflict
+                    {
+                        DocumentId = existing.Id,
+                        FileName   = existing.FileName,
+                        Similarity = sim
+                    });
+            }
+
+            if (conflicts.Count > 0)
+            {
+                // Conflict found — hold the chunks in PostgreSQL but do NOT push to Qdrant yet.
+                // The user must review and decide before this document affects search results.
+                conflicts.Sort((a, b) => b.Similarity.CompareTo(a.Similarity));
+                doc.ConflictsJson = JsonSerializer.Serialize(conflicts);
+                doc.Status = DocumentStatus.PendingReview;
+
+                _log.LogInformation(
+                    "Document {Id} '{Name}' is pending user review — {N} similar document(s) found (threshold {T:F2}).",
+                    documentId, doc.FileName, conflicts.Count, _conflictThreshold);
+            }
+            else
+            {
+                // Step 7: No conflicts — upsert to Qdrant and mark indexed immediately.
+                await _qdrant.UpsertChunksAsync(allChunks, ct);
+                doc.Status    = DocumentStatus.Indexed;
+                doc.IndexedAt = DateTimeOffset.UtcNow;
+
+                _log.LogInformation(
+                    "Document {Id} '{Name}' indexed successfully with {N} chunks.",
+                    documentId, doc.FileName, pairs.Count);
+            }
         }
         catch (Exception ex)
         {
@@ -190,6 +241,95 @@ public class DocumentIngestionService : IDocumentIngestionService
         }
 
         await db.SaveChangesAsync(ct);
+    }
+
+    // ── Conflict resolution ───────────────────────────────────────────────────
+
+    public async Task<Document> ResolveConflictAsync(
+        Guid documentId,
+        string action,
+        IReadOnlyList<Guid>? replaceIds,
+        CancellationToken ct = default)
+    {
+        await using var db = await _dbFactory.CreateDbContextAsync(ct);
+
+        var doc = await db.Documents
+            .Include(d => d.Chunks)
+            .FirstOrDefaultAsync(d => d.Id == documentId, ct)
+            ?? throw new InvalidOperationException($"Document {documentId} not found.");
+
+        if (doc.Status != DocumentStatus.PendingReview)
+            throw new InvalidOperationException("Document is not awaiting review.");
+
+        if (action == "cancel")
+        {
+            db.Documents.Remove(doc); // cascades to DocumentChunks
+            await db.SaveChangesAsync(ct);
+            _log.LogInformation("Document {Id} '{Name}' upload cancelled by user.", documentId, doc.FileName);
+            return doc;
+        }
+
+        if (action == "replace" && replaceIds?.Count > 0)
+        {
+            var oldDocs = await db.Documents
+                .Where(d => replaceIds.Contains(d.Id))
+                .ToListAsync(ct);
+
+            foreach (var old in oldDocs)
+            {
+                await _qdrant.DeleteDocumentAsync(old.Id, ct);
+                old.Status       = DocumentStatus.Superseded;
+                old.SupersededAt = DateTimeOffset.UtcNow;
+                _log.LogInformation(
+                    "Document {Id} '{Name}' superseded by {NewId}.", old.Id, old.FileName, documentId);
+            }
+        }
+
+        // Re-embed child chunks and push to Qdrant.
+        // Vectors were computed during ProcessAsync but not stored — re-compute from ChildText.
+        var chunksToIndex = doc.Chunks.OrderBy(c => c.ChunkIndex).ToList();
+        var qdrantChunks  = new List<(Guid Id, float[] Vector, string ChildText, Guid DocId, int Idx)>();
+
+        for (int i = 0; i < chunksToIndex.Count; i += EmbeddingBatchSize)
+        {
+            var slice  = chunksToIndex.Skip(i).Take(EmbeddingBatchSize).ToList();
+            var inputs = slice.Select(c => $"search_document: {c.ChildText}").ToList();
+            var vecs   = await Task.WhenAll(inputs.Select(t => _aiService.GetEmbeddingAsync(t, ct)));
+
+            for (int j = 0; j < slice.Count; j++)
+                qdrantChunks.Add((slice[j].Id, vecs[j], slice[j].ChildText, documentId, slice[j].ChunkIndex));
+        }
+
+        await _qdrant.UpsertChunksAsync(qdrantChunks, ct);
+
+        doc.Status        = DocumentStatus.Indexed;
+        doc.IndexedAt     = DateTimeOffset.UtcNow;
+        doc.ConflictsJson = null;
+
+        await db.SaveChangesAsync(ct);
+        _log.LogInformation(
+            "Document {Id} '{Name}' conflict resolved (action={Action}), now indexed.",
+            documentId, doc.FileName, action);
+
+        return doc;
+    }
+
+    // ── Math helpers ─────────────────────────────────────────────────────────
+
+    private static float[] ComputeCentroid(IReadOnlyList<float[]> vectors)
+    {
+        var dim = vectors[0].Length;
+        var avg = new float[dim];
+        foreach (var v in vectors)
+            for (int i = 0; i < dim; i++) avg[i] += v[i] / vectors.Count;
+        return avg;
+    }
+
+    private static float CosineSimilarity(float[] a, float[] b)
+    {
+        double dot = 0, na = 0, nb = 0;
+        for (int i = 0; i < a.Length; i++) { dot += a[i] * b[i]; na += a[i] * a[i]; nb += b[i] * b[i]; }
+        return na < 1e-10 || nb < 1e-10 ? 0f : (float)(dot / (Math.Sqrt(na) * Math.Sqrt(nb)));
     }
 }
 

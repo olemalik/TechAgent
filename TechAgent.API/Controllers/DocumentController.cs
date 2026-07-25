@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OilGasAI.API.Models;
@@ -60,43 +61,82 @@ public class DocumentController : ControllerBase
     public async Task<IActionResult> GetStatus(Guid id, CancellationToken ct)
     {
         await using var db = await _dbFactory.CreateDbContextAsync(ct);
-        var doc = await db.Documents
+        var raw = await db.Documents
             .AsNoTracking()
             .Where(d => d.Id == id)
-            .Select(d => new DocumentStatusResponse
-            {
-                Id = d.Id,
-                FileName = d.FileName,
-                Status = d.Status,
-                ChunkCount = d.ChunkCount,
-                ErrorMessage = d.ErrorMessage,
-                IndexedAt = d.IndexedAt
-            })
             .FirstOrDefaultAsync(ct);
 
-        return doc is null ? NotFound() : Ok(doc);
+        if (raw is null) return NotFound();
+
+        var doc = new DocumentStatusResponse
+        {
+            Id           = raw.Id,
+            FileName     = raw.FileName,
+            Status       = raw.Status,
+            ChunkCount   = raw.ChunkCount,
+            ErrorMessage = raw.ErrorMessage,
+            IndexedAt    = raw.IndexedAt,
+            Conflicts    = raw.Status == DocumentStatus.PendingReview && raw.ConflictsJson != null
+                               ? JsonSerializer.Deserialize<List<DocumentConflict>>(raw.ConflictsJson)
+                               : null
+        };
+
+        return Ok(doc);
     }
 
     /// <summary>
     /// GET /api/documents
-    /// List all uploaded documents with their status.
+    /// List all documents except Superseded (those are replaced versions, kept for audit in the DB).
+    /// PendingReview documents include their conflict list so the UI can show the resolution dialog.
     /// </summary>
     [HttpGet]
     public async Task<IActionResult> List(CancellationToken ct)
     {
         await using var db = await _dbFactory.CreateDbContextAsync(ct);
-        var docs = await db.Documents
+
+        var raw = await db.Documents
             .AsNoTracking()
+            .Where(d => d.Status != DocumentStatus.Superseded)
             .OrderByDescending(d => d.UploadedAt)
-            .Select(d => new DocumentStatusResponse
-            {
-                Id = d.Id,
-                FileName = d.FileName,
-                Status = d.Status,
-                ChunkCount = d.ChunkCount,
-                IndexedAt = d.IndexedAt
-            })
             .ToListAsync(ct);
+
+        var docs = raw.Select(d => new DocumentStatusResponse
+        {
+            Id           = d.Id,
+            FileName     = d.FileName,
+            Status       = d.Status,
+            ChunkCount   = d.ChunkCount,
+            IndexedAt    = d.IndexedAt,
+            ErrorMessage = d.ErrorMessage,
+            Conflicts    = d.Status == DocumentStatus.PendingReview && d.ConflictsJson != null
+                               ? JsonSerializer.Deserialize<List<DocumentConflict>>(d.ConflictsJson)
+                               : null
+        }).ToList();
+
         return Ok(docs);
+    }
+
+    /// <summary>
+    /// POST /api/documents/{id}/resolve
+    /// Resolve a PendingReview document. The user must explicitly choose an action:
+    ///   replace   — supersede the specified old documents, then index the new one.
+    ///   keep-both — index the new document alongside the existing ones.
+    ///   cancel    — discard the new document entirely.
+    /// </summary>
+    [HttpPost("{id:guid}/resolve")]
+    public async Task<IActionResult> Resolve(Guid id, [FromBody] ResolveConflictRequest req, CancellationToken ct)
+    {
+        if (req.Action is not ("replace" or "keep-both" or "cancel"))
+            return BadRequest("Action must be 'replace', 'keep-both', or 'cancel'.");
+
+        try
+        {
+            var doc = await _ingestion.ResolveConflictAsync(id, req.Action, req.ReplaceIds, ct);
+            return Ok(new { documentId = doc.Id, status = doc.Status, action = req.Action });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
     }
 }

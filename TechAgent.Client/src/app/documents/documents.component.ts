@@ -1,6 +1,6 @@
-import { Component, OnInit, OnDestroy, inject, signal } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { DocumentService, DocumentStatus } from './document.service';
+import { DocumentService, DocumentStatus, ResolveAction } from './document.service';
 import { FileUploaderComponent } from '../shared/file-uploader/file-uploader.component';
 import { interval, Subscription } from 'rxjs';
 import { switchMap } from 'rxjs/operators';
@@ -20,6 +20,12 @@ export class DocumentsComponent implements OnInit, OnDestroy {
   uploadError = signal<string | null>(null);
   uploading   = signal(false);
   isDragging  = signal(false);
+  resolving   = signal(false);
+
+  // Documents waiting for user decision — shown above the list as conflict cards.
+  pendingReviews = computed(() =>
+    this.documents().filter(d => d.status === 'PendingReview')
+  );
 
   private pollSub?: Subscription;
   private dragCount = 0;
@@ -111,6 +117,39 @@ export class DocumentsComponent implements OnInit, OnDestroy {
       }
     });
   }
+
+  // ── Conflict resolution ──────────────────────────────────────────────────
+
+  resolve(doc: DocumentStatus, action: ResolveAction): void {
+    this.resolving.set(true);
+    const replaceIds = action === 'replace'
+      ? (doc.conflicts ?? []).map(c => c.documentId)
+      : undefined;
+
+    this.service.resolve(doc.id, action, replaceIds).subscribe({
+      next: () => {
+        this.resolving.set(false);
+        this.loadDocuments();
+        if (action !== 'cancel') this.startPolling();
+      },
+      error: () => {
+        this.resolving.set(false);
+        this.uploadError.set('Could not resolve conflict. Please try again.');
+      }
+    });
+  }
+
+  similarityLabel(sim: number): string {
+    return `${Math.round(sim * 100)}% match`;
+  }
+
+  similarityClass(sim: number): string {
+    if (sim >= 0.85) return 'sim-high';
+    if (sim >= 0.65) return 'sim-med';
+    return 'sim-low';
+  }
+
+  // ── Internal ─────────────────────────────────────────────────────────────
 
   private startPolling(): void {
     this.pollSub?.unsubscribe();

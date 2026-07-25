@@ -68,10 +68,29 @@ public class DocumentStatusResponse
 {
     public Guid Id { get; set; }
     public string FileName { get; set; } = string.Empty;
-    public string Status { get; set; } = string.Empty;   // Processing | Indexed | Failed
+    public string Status { get; set; } = string.Empty;
     public int ChunkCount { get; set; }
     public string? ErrorMessage { get; set; }
     public DateTimeOffset? IndexedAt { get; set; }
+    // Populated only when Status = PendingReview
+    public List<DocumentConflict>? Conflicts { get; set; }
+}
+
+/// <summary>A document that is semantically similar to the newly uploaded one.</summary>
+public class DocumentConflict
+{
+    public Guid DocumentId { get; set; }
+    public string FileName { get; set; } = string.Empty;
+    /// <summary>Cosine similarity 0–1 between full-document centroids. Shown as % in the UI.</summary>
+    public float Similarity { get; set; }
+}
+
+public class ResolveConflictRequest
+{
+    /// <summary>"replace" | "keep-both" | "cancel"</summary>
+    public string Action { get; set; } = string.Empty;
+    /// <summary>Document IDs to supersede. Required when Action = "replace".</summary>
+    public List<Guid>? ReplaceIds { get; set; }
 }
 
 // ── Streaming chunk ───────────────────────────────────────────────────────────

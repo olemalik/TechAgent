@@ -47,6 +47,72 @@
     <div class="upload-error">{{ uploadError() }}</div>
   }
 
+  <!-- Conflict resolution cards — one per PendingReview document -->
+  @for (doc of pendingReviews(); track doc.id) {
+    <div class="conflict-card">
+      <div class="conflict-header">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+          fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+          <line x1="12" y1="9" x2="12" y2="13"/>
+          <line x1="12" y1="17" x2="12.01" y2="17"/>
+        </svg>
+        <span>Review required before indexing</span>
+      </div>
+
+      <div class="conflict-uploading">
+        <span class="conflict-label">New document:</span>
+        <span class="conflict-filename">{{ doc.fileName }}</span>
+      </div>
+
+      <div class="conflict-similar-label">Similar to existing document(s):</div>
+
+      @for (conflict of doc.conflicts ?? []; track conflict.documentId) {
+        <div class="conflict-match">
+          <div class="conflict-match-info">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
+              fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+            </svg>
+            <span class="conflict-match-name" [title]="conflict.fileName">{{ conflict.fileName }}</span>
+          </div>
+          <div class="conflict-bar-row">
+            <div class="conflict-bar-track">
+              <div class="conflict-bar-fill"
+                [class]="similarityClass(conflict.similarity)"
+                [style.width.%]="conflict.similarity * 100">
+              </div>
+            </div>
+            <span class="conflict-pct" [class]="similarityClass(conflict.similarity)">
+              {{ similarityLabel(conflict.similarity) }}
+            </span>
+          </div>
+        </div>
+      }
+
+      <div class="conflict-actions">
+        <button class="btn-conflict btn-replace"
+          [disabled]="resolving()"
+          (click)="resolve(doc, 'replace')">
+          Replace old version
+        </button>
+        <button class="btn-conflict btn-keep"
+          [disabled]="resolving()"
+          (click)="resolve(doc, 'keep-both')">
+          Keep both
+        </button>
+        <button class="btn-conflict btn-cancel"
+          [disabled]="resolving()"
+          (click)="resolve(doc, 'cancel')">
+          Cancel upload
+        </button>
+      </div>
+    </div>
+  }
+
   <!-- Document list -->
   <div class="list-section">
     <span class="list-heading">Uploaded Documents</span>
@@ -79,6 +145,8 @@
                   {{ chunks(doc.chunkCount) }} · {{ formatDate(doc.indexedAt) }}
                 } @else if (doc.status === 'Failed') {
                   {{ doc.errorMessage ?? 'Indexing failed' }}
+                } @else if (doc.status === 'PendingReview') {
+                  Awaiting your review — see card above
                 } @else {
                   Indexing in progress…
                 }
@@ -91,7 +159,7 @@
               } @else {
                 <span class="dot"></span>
               }
-              {{ doc.status }}
+              {{ doc.status === 'PendingReview' ? 'Review' : doc.status }}
             </span>
 
           </div>

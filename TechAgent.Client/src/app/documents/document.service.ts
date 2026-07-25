@@ -3,13 +3,22 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 
+export interface DocumentConflict {
+  documentId: string;
+  fileName: string;
+  /** Cosine similarity 0–1 between full-document centroids. */
+  similarity: number;
+}
+
 export interface DocumentStatus {
   id: string;
   fileName: string;
-  status: 'Processing' | 'Indexed' | 'Failed';
+  status: 'Pending' | 'Processing' | 'Indexed' | 'Failed' | 'PendingReview' | 'Superseded';
   chunkCount: number;
   indexedAt?: string;
   errorMessage?: string;
+  /** Populated only when status === 'PendingReview' */
+  conflicts?: DocumentConflict[];
 }
 
 export interface UploadResponse {
@@ -18,6 +27,8 @@ export interface UploadResponse {
   status: string;
   message: string;
 }
+
+export type ResolveAction = 'replace' | 'keep-both' | 'cancel';
 
 @Injectable({ providedIn: 'root' })
 export class DocumentService {
@@ -36,5 +47,9 @@ export class DocumentService {
     const form = new FormData();
     form.append('file', file, file.name);
     return this.http.post<UploadResponse>(`${this.apiUrl}/upload`, form);
+  }
+
+  resolve(id: string, action: ResolveAction, replaceIds?: string[]): Observable<unknown> {
+    return this.http.post(`${this.apiUrl}/${id}/resolve`, { action, replaceIds });
   }
 }
