@@ -106,6 +106,7 @@ builder.Services.AddHttpClient<IEmbeddingService, EmbeddingService>(c =>
 
 builder.Services.AddScoped<IQdrantService, QdrantService>();
 builder.Services.AddScoped<IRagService, RagService>();
+builder.Services.AddScoped<EvalService>();
 builder.Services.AddScoped<DocumentIngestionService>();
 builder.Services.AddScoped<IDocumentIngestionService>(sp =>
     sp.GetRequiredService<DocumentIngestionService>());

@@ -51,11 +51,15 @@ public class DomainGuardService : IDomainGuardService
 
     private float[]? _centroid;
     private readonly SemaphoreSlim _lock = new(1, 1);
+    private readonly float _similarityThreshold;
 
-    public DomainGuardService(IEmbeddingService embedding, ILogger<DomainGuardService> log)
+    public DomainGuardService(IEmbeddingService embedding, IConfiguration config, ILogger<DomainGuardService> log)
     {
         _embedding = embedding;
         _log = log;
+        // Tune against real O&G questions vs off-topic questions once you have a golden set.
+        // Lower = more permissive; higher = stricter guard but more false refusals.
+        _similarityThreshold = config.GetValue<float>("DomainGuard:SimilarityThreshold", 0.30f);
     }
 
     public async Task<bool> IsAllowedAsync(string message, float[]? queryEmbedding = null, CancellationToken ct = default)
@@ -83,7 +87,7 @@ public class DomainGuardService : IDomainGuardService
             var centroid = await GetOrBuildCentroidAsync(ct);
             float sim = Dot(queryEmbedding, centroid);
             _log.LogDebug("Domain L2 sim={S:F3}", sim);
-            if (sim < 0.30f) { _log.LogInformation("Domain L2 blocked (sim={S:F3}).", sim); return false; }
+            if (sim < _similarityThreshold) { _log.LogInformation("Domain L2 blocked (sim={S:F3}, threshold={T:F3}).", sim, _similarityThreshold); return false; }
         }
 
         return true;

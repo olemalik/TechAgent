@@ -1,0 +1,132 @@
+{
+  "ranAt": "2026-07-20T17:20:59.429729+00:00",
+  "totalQuestions": 10,
+  "errors": 0,
+  "recallAtK": 0,
+  "avgFaithfulness": 0.5216666666666667,
+  "topK": 4,
+  "minSimilarityScore": 0.45,
+  "domainGuardThreshold": 0.3,
+  "results": [
+    {
+      "id": 1,
+      "question": "What is the maximum allowable working pressure for a wellhead rated to API 6A 10000 psi class?",
+      "sourceDocument": "API-6A-Wellhead-Equipment.pdf",
+      "recallHit": false,
+      "retrieved": [],
+      "keyPhrasesHit": 2,
+      "keyPhrasesTotal": 3,
+      "faithfulness": 0.6666666666666666,
+      "actualAnswer": "According to API Specification 6A, a Wellhead with a rating of API 6A 10,000 psi Class has a maximum allowable working pressure (MAWP) of 10,000 pounds per square inch (psi).\n\nNote: This information is based on the industry standard API 6A and does not consider any specific well conditions or regulations that may affect the actual operating pressure. Always follow safety standards and consult relevant documents for specific projects.\n\nSource: API Specification 6A, Latest Edition",
+      "errorMessage": null
+    },
+    {
+      "id": 2,
+      "question": "What are the minimum hydrostatic test requirements for a blowout preventer before installation?",
+      "sourceDocument": "BOP-Testing-Procedures.pdf",
+      "recallHit": false,
+      "retrieved": [],
+      "keyPhrasesHit": 3,
+      "keyPhrasesTotal": 4,
+      "faithfulness": 0.75,
+      "actualAnswer": "According to API Standard 53A, Section 7, Annex A, a Blowout Preventer (BOP) must undergo a hydrostatic test before installation. The minimum required pressure for this test is:\n\n* For BOPs with a maximum operating pressure of 1,500 psi or less: 1.5 times the maximum operating pressure\n* For BOPs with a maximum operating pressure greater than 1,500 psi: 1,500 psi\n\nAdditionally, the BOP must withstand the equivalent of 2 hours of continuous hydrostatic pressure at this minimum required pressure without any leakage or damage. This ensures that the BOP can operate safely and effectively during drilling operations.\n\nNote: These requirements are subject to change with updated industry standards. It\u0027s always important to consult the latest edition of API Standard 53A for specific guidelines on blowout preventer testing and installation procedures.",
+      "errorMessage": null
+    },
+    {
+      "id": 3,
+      "question": "How is skin factor calculated and what does a negative skin value indicate?",
+      "sourceDocument": "Reservoir-Engineering-Fundamentals.pdf",
+      "recallHit": false,
+      "retrieved": [],
+      "keyPhrasesHit": 2,
+      "keyPhrasesTotal": 4,
+      "faithfulness": 0.5,
+      "actualAnswer": "In the Oil \u0026 Gas industry, skin factors are used to calculate the effective permeability of a porous medium, such as a rock formation or a reservoir. \n\nThe skin factor (S) is calculated using the following formula:\n\nS = q/Ai \\* Dh / (k \\* \u03BC)\n\nWhere: \n- S: Skin factor\n- q: Flow rate (volume per unit time)\n- Ai: Cross-sectional area of flow\n- Dh: Hydraulic diameter of pore or channel\n- k: Permeability\n- \u03BC: Effective fluid viscosity\n\nA negative skin value indicates that the permeability of the porous medium is lower than its initial value due to damage from drilling, completion, or production processes. This can happen when the mud or cement used in the drilling operation creates a filter cake on the walls of the wellbore, which reduces the effective permeability.\n\nIn other words, a negative skin factor suggests that the formation\u0027s natural permeability is being impaired by some external means, such as damage from drilling operations or production-induced changes.",
+      "errorMessage": null
+    },
+    {
+      "id": 4,
+      "question": "What is the H2S exposure limit for personnel in a manned facility according to OSHA?",
+      "sourceDocument": "HSE-H2S-Safety-Manual.pdf",
+      "recallHit": false,
+      "retrieved": [],
+      "keyPhrasesHit": 4,
+      "keyPhrasesTotal": 5,
+      "faithfulness": 0.8,
+      "actualAnswer": "As per OSHA 1910.1000, the permissible exposure limit (PEL) for hydrogen sulfide (H2S) is 10 ppm (parts per million) as an 8-hour time-weighted average.",
+      "errorMessage": null
+    },
+    {
+      "id": 5,
+      "question": "What causes annular pressure buildup in deepwater wells and how is it managed?",
+      "sourceDocument": "Deepwater-Well-Integrity.pdf",
+      "recallHit": false,
+      "retrieved": [],
+      "keyPhrasesHit": 2,
+      "keyPhrasesTotal": 5,
+      "faithfulness": 0.4,
+      "actualAnswer": "A great question!\n\nAnnular pressure buildup in deepwater wells refers to the increase in pressure surrounding the casing string within the wellbore, typically above the kickoff point. This phenomenon can occur when the rate of mud circulation or displacement exceeds the capability of the annulus (the space between the casing and the formation) to handle the fluid influx.\n\nThe primary causes of annular pressure buildup are:\n\n1. **Fluid influx**: When drilling mud is displaced by underbalanced fluids, such as seawater or gas, it can lead to an increase in pressure within the annulus.\n2. **Cementing operations**: Cement slurry returns can cause temporary pressure increases as the cement density and viscosity affect the annular flow.\n3. **Drilling parameters**: Aggressive drilling practices, such as high pump rates, can exceed the annulus\u0027 capacity, leading to pressure buildup.\n\nTo manage annular pressure buildup in deepwater wells:\n\n1. **Monitor drilling parameters**: Closely monitor wellhead pressures, flow rates, and mud density to identify potential issues.\n2. **Adjust mud circulation**: Modify fluid influx by adjusting pump rates or fluid properties (e.g., increasing mud weight).\n3. **Implement remedial measures**: Perform operations like circulating fluids through the Annulus or using downhole tools to repressurize the wellbore.\n4. **Design for deepwater conditions**: Incorporate safety margins into design parameters and consider installing pressure-relief devices or pressure-controlled systems.\n\nRemember, in deepwater drilling, attention to annular pressure management is crucial to ensure well integrity, HSE, and successful operations.\n\nReferences: OSHA 1910, API RP 13R1, ISO 13534-2\n\nWould you like me to elaborate on any of these points or explore related topics in Oil \u0026 Gas?",
+      "errorMessage": null
+    },
+    {
+      "id": 6,
+      "question": "What is the difference between primary cementing and squeeze cementing?",
+      "sourceDocument": "Cementing-Operations-Manual.pdf",
+      "recallHit": false,
+      "retrieved": [],
+      "keyPhrasesHit": 2,
+      "keyPhrasesTotal": 4,
+      "faithfulness": 0.5,
+      "actualAnswer": "In the oil and gas industry, both primary cementing and squeeze cementing are fluid-curing grouting techniques used to ensure well integrity and secure casing strings. The key difference lies in their objectives and methods.\n\n**Primary Cementing:**\nThe primary goal of primary cementing is to provide a solid bonding of the casing pipe to the surrounding formation, preventing fluids from migrating between zones or into the wellbore. It involves placing a high-strength cement slurry inside the annulus (the space between the casing and the formation) to create an effective seal.\n\nDuring primary cementing, the cement slurry is pumped through the annulus, displacing any remaining drilling mud or fluids. The mixture then sets (hardens) over time, forming a strong bond with the surrounding rock.\n\n**Squeeze Cementing:**\nIn contrast, squeeze cementing is a technique used to repair or enhance an existing cement bond that has been compromised due to damage, erosion, or incomplete primary cementing. This method involves injecting a specialized cement grout into the wellbore through a series of small holes (perforations) in the casing, rather than displacing fluids from the annulus.\n\nThe squeeze cement is formulated to migrate through the formation and fill any gaps or channels, re-establishing a stable bond between the casing and the rock. This technique is particularly useful for wells with poor primary cement sheath integrity or where additional containment is required.\n\nTo summarize: Primary cementing aims to create a new seal in the annulus during the initial well construction process, whereas squeeze cementing focuses on repairing or enhancing an existing cement bond that has been compromised after the well is already completed.",
+      "errorMessage": null
+    },
+    {
+      "id": 7,
+      "question": "What is the purpose of a choke manifold and how are choke sizes selected during well control?",
+      "sourceDocument": "Well-Control-Procedures.pdf",
+      "recallHit": false,
+      "retrieved": [],
+      "keyPhrasesHit": 2,
+      "keyPhrasesTotal": 5,
+      "faithfulness": 0.4,
+      "actualAnswer": "The purpose of a choke manifold is to manage the flow rate of fluids out of a well, primarily in the drilling and completion phases, while maintaining well control. It\u0027s typically used in conjunction with a Blowout Preventer (BOP) system.\n\nWhen selecting choke sizes for well control, several factors are taken into account:\n\n1. Wellbore pressure: To ensure that the well is under control, the choke setting must keep the wellhead pressure below the maximum acceptable level.\n2. Fluid flow rate: The choke size affects the rate at which fluids (gas, oil, or water) are allowed to escape from the well. This helps maintain a stable wellbore pressure and prevents gas migration or influx.\n3. Formation fluids: The type of formation fluid being produced also influences choke selection. For example, if the well is producing high-pressure, high-temperature fluids, a larger choke might be required.\n\nTo determine the appropriate choke size during well control:\n\n1. Monitor wellhead pressure and fluid flow rate using real-time data.\n2. Use calculations or empirical guidelines to determine the required choke opening (API RP 48, Well Control) based on:\n\t* The Well\u0027s Total Dynamic Head (TDH)\n\t* The Fluid\u0027s Viscosity\n\t* The Desired Wellhead Pressure\n\nBy carefully selecting the choke size and maintaining real-time monitoring, well control crews can ensure a stable wellbore pressure, preventing any potential loss of control or blowout.\n\nRemember: During well control operations, always prioritize safety (OSHA 1910.132) and follow standard practices (API RP 48).",
+      "errorMessage": null
+    },
+    {
+      "id": 8,
+      "question": "What is the formula for calculating hydrostatic pressure in a mud column?",
+      "sourceDocument": "Drilling-Engineering-Handbook.pdf",
+      "recallHit": false,
+      "retrieved": [],
+      "keyPhrasesHit": 1,
+      "keyPhrasesTotal": 5,
+      "faithfulness": 0.2,
+      "actualAnswer": "The formula to calculate hydrostatic pressure (Phydro) in a mud column is:\n\nPhydro = \u03C1gh\n\nWhere:\n\u03C1 (rho) = density of the mud (in kg/m3)\ng = acceleration due to gravity (9.8 m/s2 for sea level, OSHA 1910.146(a))\nh = height of the mud column (in meters)\n\nThis formula is relevant in upstream operations, particularly during well completion and drilling activities.",
+      "errorMessage": null
+    },
+    {
+      "id": 9,
+      "question": "How does gas-lift work and what is the role of gas-lift valves?",
+      "sourceDocument": "Artificial-Lift-Methods.pdf",
+      "recallHit": false,
+      "retrieved": [],
+      "keyPhrasesHit": 2,
+      "keyPhrasesTotal": 5,
+      "faithfulness": 0.4,
+      "actualAnswer": "A great question related to the oil and gas industry!\n\nGas-lift, also known as gas-assisted injection or casing-head gas injection, is a method used in well production to improve the flow of fluids from the reservoir. It involves injecting natural gas into the well\u0027s annulus above the liquid column, typically at higher pressures than the surrounding reservoir environment.\n\nThe primary function of gas-lift is to increase the buoyancy force on the liquids in the wellbore, thus:\n\n1. Reducing the hydrostatic pressure on the oil or gas column: By injecting gas into the annulus, the increased pressure reduces the weight of the fluid column, allowing it to rise more easily through pipes and casing strings.\n2. Enhancing fluid flow: As the liquid column is reduced in height, the pressure at the bottom of the well increases, encouraging fluids from the reservoir to move upward, increasing overall production.\n\nGas-lift valves play a crucial role in controlling the gas injection process. These valves are designed to regulate the flow rate and pressure of the injected gas, ensuring:\n\n1. Proper gas lift: Valves monitor and adjust the gas injection rate to maintain optimal buoyancy forces, optimizing fluid flow.\n2. Pressure management: Gas-lift valves also help manage pressures within the wellbore and surface facilities. Excessive pressure can damage equipment or lead to unexpected releases.\n\nTypically, gas-lift valves are installed in the wellhead or on the production platform, where they control the gas injection process based on parameters such as flow rates, pressures, and reservoir conditions.\n\nRemember to always prioritize HSE standards when designing and implementing gas-lift systems.",
+      "errorMessage": null
+    },
+    {
+      "id": 10,
+      "question": "What is the purpose of a HAZOP study and who typically participates?",
+      "sourceDocument": "HSE-Process-Safety-Procedures.pdf",
+      "recallHit": false,
+      "retrieved": [],
+      "keyPhrasesHit": 3,
+      "keyPhrasesTotal": 5,
+      "faithfulness": 0.6,
+      "actualAnswer": "From my Oil \u0026 Gas expertise, I can tell you that:\n\nA HAZOP (Hazard and Operability) study is a systematic approach to identify and evaluate potential hazards associated with a process or system. Its primary purpose is to identify potential hazards, analyze their consequences, and develop mitigating measures to ensure a safe operation.\n\nTypically, the following individuals participate in a HAZOP study:\n\n1. Project managers or designers from EPC (Engineer-Procure-Construct) companies\n2. Operations personnel with intimate knowledge of the process\n3. Hazardous materials handlers or safety specialists\n4. Industry experts familiar with regulatory requirements and industry best practices (e.g., OSHA 1910, API RP 754)\n\nRemember, HAZOP studies are crucial in ensuring compliance with occupational health and safety standards, such as OSHA\u0027s Process Safety Management (PSM) rule and API\u0027s Recommended Practice for Risk-Based Process Safety.\n\nPlease keep in mind that I\u0027m specialized only in Oil \u0026 Gas industry topics. If you have any questions unrelated to this field, feel free to ask!",
+      "errorMessage": null
+    }
+  ]
+}

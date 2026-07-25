@@ -1,0 +1,72 @@
+[
+  {
+    "id": 1,
+    "question": "What is the maximum allowable working pressure for a wellhead rated to API 6A 10000 psi class?",
+    "sourceDocument": "API-6A-Wellhead-Equipment.pdf",
+    "keyPhrases": ["10000 psi", "API 6A", "working pressure"],
+    "referenceAnswer": "The maximum allowable working pressure (MAWP) for a wellhead rated to API 6A 10,000 psi class is 10,000 psi. All components must be pressure-tested to 1.5 times MAWP before deployment."
+  },
+  {
+    "id": 2,
+    "question": "What are the minimum hydrostatic test requirements for a blowout preventer before installation?",
+    "sourceDocument": "BOP-Testing-Procedures.pdf",
+    "keyPhrases": ["hydrostatic test", "blowout preventer", "1.5 times", "low-pressure test"],
+    "referenceAnswer": "BOPs must pass a low-pressure test (200–300 psi) and a high-pressure test (1.5 times the rated working pressure) before installation per API 16A requirements."
+  },
+  {
+    "id": 3,
+    "question": "How is skin factor calculated and what does a negative skin value indicate?",
+    "sourceDocument": "Reservoir-Engineering-Fundamentals.pdf",
+    "keyPhrases": ["skin factor", "pressure drawdown", "stimulation", "negative skin"],
+    "referenceAnswer": "Skin factor (S) is derived from the difference between actual and theoretical pressure drawdown near the wellbore. A negative skin indicates a stimulated well (e.g., after fracturing) where flow capacity exceeds the theoretical Darcy flow."
+  },
+  {
+    "id": 4,
+    "question": "What is the H2S exposure limit for personnel in a manned facility according to OSHA?",
+    "sourceDocument": "HSE-H2S-Safety-Manual.pdf",
+    "keyPhrases": ["H2S", "ppm", "OSHA", "ceiling limit", "10 ppm"],
+    "referenceAnswer": "OSHA sets the permissible exposure limit (PEL) for H2S at 20 ppm with a ceiling of 50 ppm for 10-minute intervals. In oil and gas operations, facilities with potential H2S release must have gas detection and self-contained breathing apparatus available."
+  },
+  {
+    "id": 5,
+    "question": "What causes annular pressure buildup in deepwater wells and how is it managed?",
+    "sourceDocument": "Deepwater-Well-Integrity.pdf",
+    "keyPhrases": ["annular pressure buildup", "thermal expansion", "APB", "cement", "rupture disk"],
+    "referenceAnswer": "Annular pressure buildup (APB) in deepwater wells is caused by thermal expansion of trapped fluids in sealed annuli during production. It is managed by designing with sacrificial disks or foam-filled annuli to provide pressure relief without wellbore integrity compromise."
+  },
+  {
+    "id": 6,
+    "question": "What is the difference between primary cementing and squeeze cementing?",
+    "sourceDocument": "Cementing-Operations-Manual.pdf",
+    "keyPhrases": ["primary cementing", "squeeze cementing", "zonal isolation", "casing shoe"],
+    "referenceAnswer": "Primary cementing is performed immediately after running the casing string, pumping slurry from the casing shoe up the annulus to provide zonal isolation. Squeeze cementing is a remedial operation that forces cement into perforations, channels, or leaks after the primary job has failed."
+  },
+  {
+    "id": 7,
+    "question": "What is the purpose of a choke manifold and how are choke sizes selected during well control?",
+    "sourceDocument": "Well-Control-Procedures.pdf",
+    "keyPhrases": ["choke manifold", "kill line", "back pressure", "shut-in pressure", "choke size"],
+    "referenceAnswer": "A choke manifold controls back pressure on the wellbore during well control operations to safely circulate out an influx. Choke size is selected to maintain constant bottomhole pressure equal to formation pressure while circulating kill-weight mud."
+  },
+  {
+    "id": 8,
+    "question": "What is the formula for calculating hydrostatic pressure in a mud column?",
+    "sourceDocument": "Drilling-Engineering-Handbook.pdf",
+    "keyPhrases": ["hydrostatic pressure", "mud weight", "0.052", "TVD", "psi"],
+    "referenceAnswer": "Hydrostatic pressure (psi) = 0.052 × mud weight (ppg) × true vertical depth (TVD in feet). For example, a 12 ppg mud at 10,000 ft TVD gives 0.052 × 12 × 10,000 = 6,240 psi."
+  },
+  {
+    "id": 9,
+    "question": "How does gas-lift work and what is the role of gas-lift valves?",
+    "sourceDocument": "Artificial-Lift-Methods.pdf",
+    "keyPhrases": ["gas-lift", "injection pressure", "gas-lift valve", "tubing pressure", "bottomhole pressure"],
+    "referenceAnswer": "Gas-lift injects high-pressure gas from the annulus into the tubing to reduce the hydrostatic head and allow reservoir fluids to flow to surface. Gas-lift valves (GLVs) are installed in side-pocket mandrels and open at preset injection pressures to control gas entry points."
+  },
+  {
+    "id": 10,
+    "question": "What is the purpose of a HAZOP study and who typically participates?",
+    "sourceDocument": "HSE-Process-Safety-Procedures.pdf",
+    "keyPhrases": ["HAZOP", "hazard", "operability", "guide words", "process engineer"],
+    "referenceAnswer": "A HAZOP (Hazard and Operability) study is a structured review that identifies potential hazards and operability issues in process designs by systematically applying guide words (e.g., MORE, LESS, NO, REVERSE) to process parameters. Participants typically include a process engineer, operations lead, safety engineer, instrument engineer, and an independent HAZOP chairman."
+  }
+]
