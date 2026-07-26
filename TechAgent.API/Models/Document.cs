@@ -21,6 +21,10 @@ public class Document
     // Serialized List<DocumentConflict> — populated when Status = PendingReview.
     public string? ConflictsJson { get; set; }
 
+    // Non-null when this document belongs to a recurring series (e.g. daily inspection checklists).
+    // Documents in the same series are auto-indexed on re-upload without the conflict dialog.
+    public Guid? SeriesId { get; set; }
+
     public ICollection<DocumentChunk> Chunks { get; set; } = [];
 }
 

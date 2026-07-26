@@ -72,6 +72,8 @@ public class DocumentStatusResponse
     public int ChunkCount { get; set; }
     public string? ErrorMessage { get; set; }
     public DateTimeOffset? IndexedAt { get; set; }
+    // Non-null = document belongs to a recurring series (auto-indexed on future uploads)
+    public Guid? SeriesId { get; set; }
     // Populated only when Status = PendingReview
     public List<DocumentConflict>? Conflicts { get; set; }
 }
@@ -87,9 +89,13 @@ public class DocumentConflict
 
 public class ResolveConflictRequest
 {
-    /// <summary>"replace" | "keep-both" | "cancel"</summary>
+    /// <summary>"replace" | "keep-both" | "add-to-series" | "cancel"</summary>
     public string Action { get; set; } = string.Empty;
-    /// <summary>Document IDs to supersede. Required when Action = "replace".</summary>
+    /// <summary>
+    /// Conflict document IDs.
+    /// replace      → these are superseded.
+    /// add-to-series → these are grouped into the same series; future similar uploads auto-index.
+    /// </summary>
     public List<Guid>? ReplaceIds { get; set; }
 }
 

@@ -122,7 +122,8 @@ export class DocumentsComponent implements OnInit, OnDestroy {
 
   resolve(doc: DocumentStatus, action: ResolveAction): void {
     this.resolving.set(true);
-    const replaceIds = action === 'replace'
+    // replace needs IDs to supersede; add-to-series needs IDs to group into the same series
+    const replaceIds = (action === 'replace' || action === 'add-to-series')
       ? (doc.conflicts ?? []).map(c => c.documentId)
       : undefined;
 

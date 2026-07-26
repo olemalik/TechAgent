@@ -76,6 +76,7 @@ public class DocumentController : ControllerBase
             ChunkCount   = raw.ChunkCount,
             ErrorMessage = raw.ErrorMessage,
             IndexedAt    = raw.IndexedAt,
+            SeriesId     = raw.SeriesId,
             Conflicts    = raw.Status == DocumentStatus.PendingReview && raw.ConflictsJson != null
                                ? JsonSerializer.Deserialize<List<DocumentConflict>>(raw.ConflictsJson)
                                : null
@@ -108,6 +109,7 @@ public class DocumentController : ControllerBase
             ChunkCount   = d.ChunkCount,
             IndexedAt    = d.IndexedAt,
             ErrorMessage = d.ErrorMessage,
+            SeriesId     = d.SeriesId,
             Conflicts    = d.Status == DocumentStatus.PendingReview && d.ConflictsJson != null
                                ? JsonSerializer.Deserialize<List<DocumentConflict>>(d.ConflictsJson)
                                : null
@@ -126,8 +128,8 @@ public class DocumentController : ControllerBase
     [HttpPost("{id:guid}/resolve")]
     public async Task<IActionResult> Resolve(Guid id, [FromBody] ResolveConflictRequest req, CancellationToken ct)
     {
-        if (req.Action is not ("replace" or "keep-both" or "cancel"))
-            return BadRequest("Action must be 'replace', 'keep-both', or 'cancel'.");
+        if (req.Action is not ("replace" or "keep-both" or "add-to-series" or "cancel"))
+            return BadRequest("Action must be 'replace', 'keep-both', 'add-to-series', or 'cancel'.");
 
         try
         {

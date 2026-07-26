@@ -449,6 +449,16 @@
   background: rgba(59,130,246,0.2);
 }
 
+.btn-series {
+  background: rgba(139,92,246,0.1);
+  border-color: rgba(139,92,246,0.3);
+  color: #a78bfa;
+}
+
+.btn-series:hover:not(:disabled) {
+  background: rgba(139,92,246,0.2);
+}
+
 .btn-cancel {
   background: transparent;
   border-color: var(--input-border);
@@ -457,4 +467,20 @@
 
 .btn-cancel:hover:not(:disabled) {
   background: var(--sidebar-hover);
+}
+
+/* ── Recurring series tag ────────────────────────────────────────────────── */
+.series-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: #a78bfa;
+  background: rgba(139,92,246,0.1);
+  border: 1px solid rgba(139,92,246,0.25);
+  border-radius: 4px;
+  padding: 1px 5px;
+  vertical-align: middle;
 }

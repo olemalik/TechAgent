@@ -17,6 +17,8 @@ export interface DocumentStatus {
   chunkCount: number;
   indexedAt?: string;
   errorMessage?: string;
+  /** Non-null = document belongs to a recurring series; future similar uploads auto-index. */
+  seriesId?: string;
   /** Populated only when status === 'PendingReview' */
   conflicts?: DocumentConflict[];
 }
@@ -28,7 +30,7 @@ export interface UploadResponse {
   message: string;
 }
 
-export type ResolveAction = 'replace' | 'keep-both' | 'cancel';
+export type ResolveAction = 'replace' | 'keep-both' | 'add-to-series' | 'cancel';
 
 @Injectable({ providedIn: 'root' })
 export class DocumentService {

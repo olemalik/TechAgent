@@ -190,7 +190,7 @@ public class DocumentIngestionService : IDocumentIngestionService
                 .Where(d => d.Id != documentId
                          && d.Status == DocumentStatus.Indexed
                          && d.FingerprintJson != null)
-                .Select(d => new { d.Id, d.FileName, d.FingerprintJson })
+                .Select(d => new { d.Id, d.FileName, d.FingerprintJson, d.SeriesId })
                 .AsNoTracking()
                 .ToListAsync(ct);
 
@@ -211,15 +211,33 @@ public class DocumentIngestionService : IDocumentIngestionService
 
             if (conflicts.Count > 0)
             {
-                // Conflict found — hold the chunks in PostgreSQL but do NOT push to Qdrant yet.
-                // The user must review and decide before this document affects search results.
-                conflicts.Sort((a, b) => b.Similarity.CompareTo(a.Similarity));
-                doc.ConflictsJson = JsonSerializer.Serialize(conflicts);
-                doc.Status = DocumentStatus.PendingReview;
+                // Check if any conflicting document is already part of a known series.
+                // If yes, this is a recurring upload (e.g. daily checklist) — auto-index
+                // silently and inherit the same SeriesId. No user prompt needed.
+                var seriesMatch = existingDocs
+                    .FirstOrDefault(d => d.SeriesId.HasValue
+                                      && conflicts.Any(c => c.DocumentId == d.Id));
 
-                _log.LogInformation(
-                    "Document {Id} '{Name}' is pending user review — {N} similar document(s) found (threshold {T:F2}).",
-                    documentId, doc.FileName, conflicts.Count, _conflictThreshold);
+                if (seriesMatch is not null)
+                {
+                    doc.SeriesId  = seriesMatch.SeriesId;
+                    await _qdrant.UpsertChunksAsync(allChunks, ct);
+                    doc.Status    = DocumentStatus.Indexed;
+                    doc.IndexedAt = DateTimeOffset.UtcNow;
+                    _log.LogInformation(
+                        "Document {Id} '{Name}' auto-indexed into series {SeriesId} — recurring upload.",
+                        documentId, doc.FileName, seriesMatch.SeriesId);
+                }
+                else
+                {
+                    // Unknown conflict — hold in PostgreSQL, prompt the user.
+                    conflicts.Sort((a, b) => b.Similarity.CompareTo(a.Similarity));
+                    doc.ConflictsJson = JsonSerializer.Serialize(conflicts);
+                    doc.Status = DocumentStatus.PendingReview;
+                    _log.LogInformation(
+                        "Document {Id} '{Name}' pending review — {N} similar doc(s) found (threshold {T:F2}).",
+                        documentId, doc.FileName, conflicts.Count, _conflictThreshold);
+                }
             }
             else
             {
@@ -227,7 +245,6 @@ public class DocumentIngestionService : IDocumentIngestionService
                 await _qdrant.UpsertChunksAsync(allChunks, ct);
                 doc.Status    = DocumentStatus.Indexed;
                 doc.IndexedAt = DateTimeOffset.UtcNow;
-
                 _log.LogInformation(
                     "Document {Id} '{Name}' indexed successfully with {N} chunks.",
                     documentId, doc.FileName, pairs.Count);
@@ -283,6 +300,26 @@ public class DocumentIngestionService : IDocumentIngestionService
                 _log.LogInformation(
                     "Document {Id} '{Name}' superseded by {NewId}.", old.Id, old.FileName, documentId);
             }
+        }
+
+        if (action == "add-to-series" && replaceIds?.Count > 0)
+        {
+            // Group the new doc and all conflicting docs into the same series.
+            // Reuse an existing SeriesId if any member already has one, otherwise create fresh.
+            var seriesMembers = await db.Documents
+                .Where(d => replaceIds.Contains(d.Id))
+                .ToListAsync(ct);
+
+            var seriesId = seriesMembers.FirstOrDefault(d => d.SeriesId.HasValue)?.SeriesId
+                           ?? Guid.NewGuid();
+
+            foreach (var member in seriesMembers)
+                member.SeriesId = seriesId;
+
+            doc.SeriesId = seriesId;
+            _log.LogInformation(
+                "Document {Id} '{Name}' added to series {SeriesId} with {N} existing member(s).",
+                documentId, doc.FileName, seriesId, seriesMembers.Count);
         }
 
         // Re-embed child chunks and push to Qdrant.

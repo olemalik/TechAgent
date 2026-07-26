@@ -104,10 +104,16 @@
           (click)="resolve(doc, 'keep-both')">
           Keep both
         </button>
+        <button class="btn-conflict btn-series"
+          [disabled]="resolving()"
+          (click)="resolve(doc, 'add-to-series')"
+          title="Index alongside existing versions and skip this dialog for future similar uploads">
+          Recurring record — don't ask again
+        </button>
         <button class="btn-conflict btn-cancel"
           [disabled]="resolving()"
           (click)="resolve(doc, 'cancel')">
-          Cancel upload
+          Cancel
         </button>
       </div>
     </div>
@@ -143,6 +149,7 @@
               <span class="doc-meta">
                 @if (doc.status === 'Indexed') {
                   {{ chunks(doc.chunkCount) }} · {{ formatDate(doc.indexedAt) }}
+                  @if (doc.seriesId) { · <span class="series-tag">Recurring</span> }
                 } @else if (doc.status === 'Failed') {
                   {{ doc.errorMessage ?? 'Indexing failed' }}
                 } @else if (doc.status === 'PendingReview') {
