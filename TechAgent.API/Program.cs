@@ -2,6 +2,7 @@ using Hangfire;
 using Hangfire.MemoryStorage;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.AI;
+using OilGasAI.API.Infrastructure;
 using OilGasAI.API.Interfaces;
 using OilGasAI.API.Services;
 using OpenAI;
@@ -127,15 +128,7 @@ builder.Services.AddControllers();
 
 var app = builder.Build();
 
-// Apply pending EF migrations and ensure Qdrant collection exists at startup
-await using (var scope = app.Services.CreateAsyncScope())
-{
-    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    await db.Database.MigrateAsync();
-
-    var qdrant = scope.ServiceProvider.GetRequiredService<IQdrantService>();
-    await qdrant.EnsureCollectionAsync();
-}
+await app.InitialiseAsync();
 
 app.UseCors("AllowAngular");
 
