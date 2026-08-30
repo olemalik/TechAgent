@@ -19,6 +19,9 @@ public class AppDbContext : DbContext
     // ChatSessionHistory: conversation history per session (last 8 turns sent to Ollama)
     public DbSet<ChatSessionHistory> ChatHistory { get; set; }
 
+    // McpServerConfigs: user-configured MCP server connections
+    public DbSet<McpServerConfig> McpServerConfigs { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<SentNews>()
@@ -63,6 +66,18 @@ public class AppDbContext : DbContext
             b.Property(h => h.AttachmentUrl).HasMaxLength(1000);
             b.Property(h => h.AttachmentContentType).HasMaxLength(100);
             b.HasIndex(h => new { h.SessionId, h.CreatedAt });
+        });
+
+        // ── McpServerConfig ───────────────────────────────────────────────────
+        modelBuilder.Entity<McpServerConfig>(b =>
+        {
+            b.ToTable("mcp_server_configs");
+            b.HasKey(m => m.Id);
+            b.Property(m => m.Name).HasMaxLength(200).IsRequired();
+            b.Property(m => m.TransportType).HasMaxLength(20).IsRequired();
+            b.Property(m => m.Url).HasMaxLength(1000);
+            b.Property(m => m.ApiKey).HasMaxLength(500);
+            b.Property(m => m.Description).HasMaxLength(500);
         });
     }
 }

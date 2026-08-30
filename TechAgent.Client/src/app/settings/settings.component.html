@@ -1,0 +1,210 @@
+<div class="settings-layout">
+
+  <!-- ── Left nav ─────────────────────────────────────────────────────── -->
+  <nav class="settings-nav">
+    <div class="nav-title">Settings</div>
+
+    <div class="nav-group">
+      <span class="nav-group-label">Integrations</span>
+      <button class="nav-item" [class.active]="activeSection() === 'mcp-servers'"
+              (click)="activeSection.set('mcp-servers')">
+        <!-- Plug icon -->
+        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24"
+          fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <path d="M18 6L6 18M9 6H6v3M15 18h3v-3"/>
+          <path d="M9 3v3M15 18v3"/>
+        </svg>
+        MCP Servers
+      </button>
+    </div>
+
+    <div class="nav-group">
+      <span class="nav-group-label">General</span>
+      <button class="nav-item nav-item-soon" disabled title="Coming soon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24"
+          fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42
+                   M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+        </svg>
+        AI Model
+        <span class="soon-badge">Soon</span>
+      </button>
+      <button class="nav-item nav-item-soon" disabled title="Coming soon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24"
+          fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="5"/>
+          <line x1="12" y1="1" x2="12" y2="3"/>
+          <line x1="12" y1="21" x2="12" y2="23"/>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+          <line x1="1" y1="12" x2="3" y2="12"/>
+          <line x1="21" y1="12" x2="23" y2="12"/>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+        </svg>
+        Appearance
+        <span class="soon-badge">Soon</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- ── Right content ──────────────────────────────────────────────── -->
+  <div class="settings-content">
+
+    @if (activeSection() === 'mcp-servers') {
+
+      <div class="content-header">
+        <div>
+          <h2 class="content-title">MCP Servers</h2>
+          <p class="content-sub">
+            Connect any MCP-compatible server (GitHub, Slack, custom tools).
+            Saved connections are loaded when the AI processes your queries.
+          </p>
+        </div>
+        <button class="btn-add" (click)="startAdd()" [disabled]="!!editing">
+          + Add Server
+        </button>
+      </div>
+
+      <!-- Success toast -->
+      @if (savedMsg()) {
+        <div class="toast-success">✓ Server saved successfully</div>
+      }
+
+      <!-- Error state -->
+      @if (loadError()) {
+        <div class="empty-state">
+          Could not load servers.
+          <button class="retry-btn" (click)="load()">Retry</button>
+        </div>
+      }
+
+      <!-- Add / Edit form -->
+      @if (editing) {
+        <div class="mcp-form-card">
+          <div class="form-title">{{ editing.id ? 'Edit Server' : 'Add MCP Server' }}</div>
+
+          <div class="form-grid">
+            <label class="form-label">
+              Name *
+              <input class="form-input" [(ngModel)]="editing.name"
+                     placeholder="e.g. GitHub Copilot" />
+            </label>
+
+            <label class="form-label">
+              Transport
+              <select class="form-input" [(ngModel)]="editing.transportType">
+                <option value="http">HTTP</option>
+                <option value="sse">SSE</option>
+                <option value="stdio">Stdio</option>
+              </select>
+            </label>
+
+            <label class="form-label form-full">
+              URL
+              <input class="form-input" [(ngModel)]="editing.url"
+                     placeholder="https://your-mcp-server.com/mcp" />
+            </label>
+
+            <label class="form-label form-full">
+              API Key
+              <div class="input-row">
+                <input class="form-input" [(ngModel)]="editing.apiKey"
+                       [type]="showApiKey ? 'text' : 'password'"
+                       placeholder="Optional — sent as Bearer token" />
+                <button class="btn-eye" type="button" (click)="showApiKey = !showApiKey">
+                  @if (showApiKey) { Hide } @else { Show }
+                </button>
+              </div>
+            </label>
+
+            <label class="form-label form-full">
+              Description
+              <input class="form-input" [(ngModel)]="editing.description"
+                     placeholder="What does this server do?" />
+            </label>
+
+            <label class="form-label toggle-label">
+              <input type="checkbox" [(ngModel)]="editing.isEnabled" />
+              <span>Enabled</span>
+            </label>
+          </div>
+
+          @if (saveError()) {
+            <div class="form-error">{{ saveError() }}</div>
+          }
+
+          <div class="form-actions">
+            <button class="btn-save" (click)="save()" [disabled]="saving() || !editing.name.trim()">
+              {{ saving() ? 'Saving…' : (editing.id ? 'Save Changes' : 'Add Server') }}
+            </button>
+            <button class="btn-cancel-form" (click)="cancelEdit()">Cancel</button>
+          </div>
+        </div>
+      }
+
+      <!-- Empty state -->
+      @if (configs().length === 0 && !loadError() && !editing) {
+        <div class="empty-state">No MCP servers configured yet.</div>
+      }
+
+      <!-- Server list -->
+      <div class="mcp-list">
+        @for (config of configs(); track config.id) {
+          <div class="mcp-card" [class.mcp-disabled]="!config.isEnabled">
+
+            <div class="mcp-card-left">
+              <div class="mcp-dot"
+                   [class.dot-online]="testResults()[config.id!]?.reachable"
+                   [class.dot-offline]="testResults()[config.id!] && !testResults()[config.id!]?.reachable">
+              </div>
+
+              <div class="mcp-info">
+                <div class="mcp-name-row">
+                  <span class="mcp-name">{{ config.name }}</span>
+                  <span class="mcp-badge">{{ transportLabel(config.transportType) }}</span>
+                  @if (!config.isEnabled) {
+                    <span class="mcp-badge badge-disabled">Disabled</span>
+                  }
+                </div>
+                @if (config.url) {
+                  <span class="mcp-url">{{ config.url }}</span>
+                }
+                @if (config.description) {
+                  <span class="mcp-desc">{{ config.description }}</span>
+                }
+                @if (testResults()[config.id!]; as result) {
+                  @if (result.reachable) {
+                    <span class="test-ok">● Reachable{{ result.note ? ' — ' + result.note : '' }}</span>
+                  } @else {
+                    <span class="test-err">● Unreachable{{ result.error ? ' — ' + result.error : '' }}</span>
+                  }
+                }
+              </div>
+            </div>
+
+            <div class="mcp-actions">
+              <button class="btn-action"
+                      (click)="test(config)"
+                      [disabled]="testingId() === config.id || !config.url">
+                {{ testingId() === config.id ? '…' : 'Test' }}
+              </button>
+              <button class="btn-action" (click)="startEdit(config)">Edit</button>
+              <button class="btn-action btn-toggle" (click)="toggleEnabled(config)">
+                {{ config.isEnabled ? 'Disable' : 'Enable' }}
+              </button>
+              <button class="btn-action btn-delete" (click)="remove(config.id!)">Delete</button>
+            </div>
+
+          </div>
+        }
+      </div>
+
+    }
+
+  </div>
+</div>

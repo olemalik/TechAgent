@@ -7,7 +7,7 @@ using OilGasAI.API.Interfaces;
 namespace OilGasAI.API.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/documents")]
 public class DocumentController : ControllerBase
 {
     private readonly IDocumentIngestionService _ingestion;
