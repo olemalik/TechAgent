@@ -15,14 +15,13 @@ var provider = builder.Configuration["AI:Provider"]; // "Ollama", "OpenAI", "Cla
 switch (provider)
 {
     case "Ollama":
-        // Ollama supports the OpenAI-compatible API under /v1
         var ollamaClient = new OpenAIClient(
             new ApiKeyCredential("ollama"),
             new OpenAIClientOptions { Endpoint = new Uri(builder.Configuration["AI:Ollama:Endpoint"]! + "/v1") }
         );
         builder.Services.AddChatClient(
             ollamaClient.GetChatClient(builder.Configuration["AI:Ollama:ChatModel"]!).AsIChatClient()
-        );
+        ).UseFunctionInvocation();  // agentic loop: model calls a tool → execute → feed result back → repeat
         builder.Services.AddEmbeddingGenerator(
             ollamaClient.GetEmbeddingClient(builder.Configuration["AI:Ollama:EmbeddingModel"]!).AsIEmbeddingGenerator()
         );
@@ -34,21 +33,20 @@ switch (provider)
         );
         builder.Services.AddChatClient(
             openAIClient.GetChatClient(builder.Configuration["AI:OpenAI:ChatModel"]!).AsIChatClient()
-        );
+        ).UseFunctionInvocation();
         builder.Services.AddEmbeddingGenerator(
             openAIClient.GetEmbeddingClient(builder.Configuration["AI:OpenAI:EmbeddingModel"]!).AsIEmbeddingGenerator()
         );
         break;
 
     case "Claude":
-        // Claude via OpenAI-compatible endpoint (chat only — no embeddings API)
         var claudeClient = new OpenAIClient(
             new ApiKeyCredential(builder.Configuration["AI:Claude:ApiKey"]!),
             new OpenAIClientOptions { Endpoint = new Uri("https://api.anthropic.com/v1") }
         );
         builder.Services.AddChatClient(
             claudeClient.GetChatClient(builder.Configuration["AI:Claude:ChatModel"]!).AsIChatClient()
-        );
+        ).UseFunctionInvocation();
         break;
 }
 
@@ -70,6 +68,10 @@ builder.Services.AddScoped<AppDbContext>(sp =>
     sp.GetRequiredService<IDbContextFactory<AppDbContext>>().CreateDbContext());
 
 builder.Services.AddHttpClient();
+
+// ── MCP: named client used by McpToolRegistry for server connections ───────
+builder.Services.AddHttpClient("mcp", c => c.Timeout = TimeSpan.FromSeconds(30));
+
 builder.Services.AddScoped<NewsService>();
 builder.Services.AddHttpClient<OllamaService>();
 builder.Services.AddTransient<TelegramService>();
@@ -82,7 +84,7 @@ builder.Services.AddHangfireServer();
 // Separate from OllamaService HttpClient above — different timeout (generation is slow on CPU)
 builder.Services.AddHttpClient("ollama-generate", c =>
 {
-    c.Timeout = TimeSpan.FromMinutes(10);  // CPU inference can take up to 60s per response
+    c.Timeout = TimeSpan.FromMinutes(10);  // CPU inference can take up to 10minutes per response
 });
 
 // ─── NEW: HybridCache (.NET 9 GA) ─────────────────────────────────────────────
@@ -114,6 +116,12 @@ builder.Services.AddScoped<IDocumentIngestionService>(sp =>
 
 // Background service: processes document ingestion queue items off the HTTP thread
 builder.Services.AddHostedService<IngestionBackgroundService>();
+
+// ── MCP Tool Registry ─────────────────────────────────────────────────────
+// Singleton: maintains live connections to all enabled MCP servers; caches tool lists.
+// IHostedService: loads tools at startup and refreshes every 5 minutes.
+builder.Services.AddSingleton<McpToolRegistry>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<McpToolRegistry>());
 
 // ─── CORS ─────────────────────────────────────────────────────────────────────
 builder.Services.AddCors(options =>

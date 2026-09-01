@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Caching.Hybrid;
 using OilGasAI.API.Interfaces;
 using OilGasAI.API.Models;
@@ -26,6 +27,7 @@ public class RagService : IRagService
     private readonly IDomainGuardService _guard;
     private readonly HybridCache _cache;
     private readonly IAIService _aiService;
+    private readonly McpToolRegistry _mcpTools;
     private readonly ILogger<RagService> _log;
 
     private const int MaxHistoryTurns = 8;
@@ -39,6 +41,7 @@ public class RagService : IRagService
         IDomainGuardService guard,
         HybridCache cache,
         IAIService aiService,
+        McpToolRegistry mcpTools,
         IConfiguration config,
         ILogger<RagService> log)
     {
@@ -47,8 +50,8 @@ public class RagService : IRagService
         _guard = guard;
         _cache = cache;
         _aiService = aiService;
+        _mcpTools = mcpTools;
         _log = log;
-        // Tune this value against your golden evaluation set — start at 0.45 for cosine.
         _minSimilarityScore = config.GetValue<float>("Qdrant:MinSimilarityScore", 0.45f);
     }
 
@@ -129,22 +132,28 @@ public class RagService : IRagService
             .AsNoTracking()
             .ToListAsync(ct);
 
-        // Step 5: Build enriched prompt with golden few-shot examples
-        var prompt = BuildPrompt(
+        // Step 5 + 6: Build messages and attach MCP tools.
+        // System message carries RAG context + instructions; User message carries only the question.
+        // Splitting them lets UseFunctionInvocation() middleware cleanly insert tool call/result
+        // turns between system context and the question without corrupting the prompt format.
+        var tools = _mcpTools.GetTools();
+        var options = tools.Count > 0
+            ? new ChatOptions { Tools = [..tools] }
+            : null;
+        var messages = BuildMessages(
             request.Message,
             request.AttachmentName,
             chunks.Select(c => (c.ParentText, c.FileName)).ToList(),
             history,
             goldenPairs);
 
-        // Step 6 + 7: Get answer — skip cache for conversational turns
         var answer = history.Count == 0
             ? await _cache.GetOrCreateAsync(
                 $"rag:{Hash(request.Message)}",
-                factory: async innerCt => await _aiService.ChatAsync(prompt, innerCt),
+                factory: async innerCt => await _aiService.ChatAsync(messages, options, innerCt),
                 options: new HybridCacheEntryOptions { Expiration = TimeSpan.FromMinutes(30) },
                 cancellationToken: ct)
-            : await _aiService.ChatAsync(prompt, ct);
+            : await _aiService.ChatAsync(messages, options, ct);
 
         // Step 8: Persist to PostgreSQL (include attachment metadata if present)
         var sources = chunks.Select(c => c.FileName).Distinct().ToList();
@@ -232,7 +241,11 @@ public class RagService : IRagService
             .AsNoTracking()
             .ToListAsync(ct);
 
-        var prompt = BuildPrompt(
+        var streamTools = _mcpTools.GetTools();
+        var streamOptions = streamTools.Count > 0
+            ? new ChatOptions { Tools = [..streamTools] }
+            : null;
+        var streamMessages = BuildMessages(
             request.Message,
             request.AttachmentName,
             chunks.Select(c => (c.ParentText, c.FileName)).ToList(),
@@ -240,7 +253,7 @@ public class RagService : IRagService
             goldenPairs);
 
         var fullText = new StringBuilder();
-        await foreach (var token in _aiService.StreamAsync(prompt, ct))
+        await foreach (var token in _aiService.StreamAsync(streamMessages, streamOptions, ct))
         {
             fullText.Append(token);
             yield return new RagStreamChunk { Type = "token", Value = token };
@@ -251,61 +264,66 @@ public class RagService : IRagService
         yield return new RagStreamChunk { Type = "done", SessionId = sessionId, WasRefused = false, AssistantMessageId = assistantId };
     }
 
-    // ── Prompt Builder ────────────────────────────────────────────────────────
+    // ── Message Builder ───────────────────────────────────────────────────────
+    // Returns [SystemMessage(context), UserMessage(question)] so tool-call/result
+    // turns inserted by UseFunctionInvocation() middleware fit cleanly in between.
 
-    private static string BuildPrompt(
+    private static IList<ChatMessage> BuildMessages(
         string question,
         string? attachmentName,
         IReadOnlyList<(string ParentText, string FileName)> chunks,
         IReadOnlyList<ChatSessionHistory> history,
         IReadOnlyList<ChatSessionHistory> goldenPairs)
     {
-        var sb = new StringBuilder();
+        var system = new StringBuilder();
 
-        // 0. Few-shot golden examples first — ground the model in verified expert answers
+        // 0. Few-shot golden examples
         if (goldenPairs.Count > 0)
         {
-            sb.AppendLine("[VERIFIED EXAMPLES — expert-confirmed answers]");
+            system.AppendLine("[VERIFIED EXAMPLES — expert-confirmed answers]");
             foreach (var pair in goldenPairs)
-                sb.AppendLine($"EXAMPLE ANSWER: {pair.Message}");
-            sb.AppendLine("[END EXAMPLES]");
-            sb.AppendLine();
+                system.AppendLine($"EXAMPLE ANSWER: {pair.Message}");
+            system.AppendLine("[END EXAMPLES]");
+            system.AppendLine();
         }
 
-        // 1. Document context (most important for grounding)
+        // 1. Document context
         if (chunks.Count > 0)
         {
-            sb.AppendLine("[CONTEXT START]");
+            system.AppendLine("[CONTEXT START]");
             foreach (var (text, file) in chunks)
             {
-                sb.AppendLine($"Source: {file}");
-                sb.AppendLine(text);
-                sb.AppendLine("---");
+                system.AppendLine($"Source: {file}");
+                system.AppendLine(text);
+                system.AppendLine("---");
             }
-            sb.AppendLine("[CONTEXT END]");
-            sb.AppendLine("Using the context above, answer the Oil & Gas question accurately.");
-            sb.AppendLine("If the context does not contain the answer, say so clearly. Never fabricate.");
+            system.AppendLine("[CONTEXT END]");
+            system.AppendLine("Use the context above to answer the Oil & Gas question accurately.");
+            system.AppendLine("If the context does not contain the answer, say so clearly and use any available tools to find the information. Never fabricate.");
         }
         else
         {
-            sb.AppendLine("No document context available. Answer from Oil & Gas training knowledge only.");
+            system.AppendLine("No document context available. Use your Oil & Gas training knowledge and any available tools to answer accurately.");
         }
 
         // 2. Conversation history
         if (history.Count > 0)
         {
-            sb.AppendLine("\nCONVERSATION HISTORY:");
+            system.AppendLine("\nCONVERSATION HISTORY:");
             foreach (var h in history)
-                sb.AppendLine($"{h.Role.ToUpper()}: {h.Message}");
+                system.AppendLine($"{h.Role.ToUpper()}: {h.Message}");
         }
 
-        // 3. Question last (mention attachment if present so the model is aware)
-        if (attachmentName is not null)
-            sb.AppendLine($"\n[User attached a file: {attachmentName}]");
+        // 3. User message carries only the question (+ attachment note if any)
+        var userText = attachmentName is not null
+            ? $"[User attached a file: {attachmentName}]\n{question}"
+            : question;
 
-        sb.AppendLine($"\nQUESTION: {question}");
-        sb.AppendLine("ANSWER:");
-        return sb.ToString();
+        return
+        [
+            new ChatMessage(ChatRole.System, system.ToString()),
+            new ChatMessage(ChatRole.User, userText)
+        ];
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────

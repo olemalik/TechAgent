@@ -25,6 +25,7 @@
     </PackageReference>
     <PackageReference Include="Microsoft.Extensions.AI" Version="10.6.0" />
     <PackageReference Include="Microsoft.Extensions.AI.OpenAI" Version="10.6.0" />
+    <PackageReference Include="ModelContextProtocol" Version="2.2.0" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.0" />
     <PackageReference Include="OpenAI" Version="2.10.0" />
     <PackageReference Include="System.ServiceModel.Syndication" Version="10.0.5" />

@@ -22,12 +22,16 @@ public class AIService : IAIService
     }
 
     public async Task<string> ChatAsync(string message, CancellationToken ct = default)
+        => await ChatAsync([new ChatMessage(ChatRole.User, message)], null, ct);
+
+    public async Task<string> ChatAsync(
+        IList<ChatMessage> messages,
+        ChatOptions? options,
+        CancellationToken ct = default)
     {
         try
         {
-            var response = await _chatClient.GetResponseAsync(
-                [new ChatMessage(ChatRole.User, message)],
-                cancellationToken: ct);
+            var response = await _chatClient.GetResponseAsync(messages, options, ct);
             return response.Messages.LastOrDefault()?.Text ?? string.Empty;
         }
         catch (Exception ex)
@@ -37,12 +41,15 @@ public class AIService : IAIService
         }
     }
 
+    public IAsyncEnumerable<string> StreamAsync(string prompt, CancellationToken ct = default)
+        => StreamAsync([new ChatMessage(ChatRole.User, prompt)], null, ct);
+
     public async IAsyncEnumerable<string> StreamAsync(
-        string prompt,
+        IList<ChatMessage> messages,
+        ChatOptions? options,
         [EnumeratorCancellation] CancellationToken ct = default)
     {
-        var messages = new List<ChatMessage> { new(ChatRole.User, prompt) };
-        await foreach (var update in _chatClient.GetStreamingResponseAsync(messages, cancellationToken: ct))
+        await foreach (var update in _chatClient.GetStreamingResponseAsync(messages, options, ct))
         {
             var text = update.Text;
             if (!string.IsNullOrEmpty(text))
