@@ -1,0 +1,157 @@
+.messages-container {
+  position: relative;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.messages-container ejs-chatui {
+  flex: 1;
+  min-height: 0;
+  display: block;
+}
+
+/* ── Welcome overlay ──────────────────────────────────────────────────── */
+.welcome-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  pointer-events: none;
+  z-index: 5;
+  background: var(--chat-bg, #ffffff);
+  padding: 24px;
+  text-align: center;
+  transition: background 0.2s;
+}
+
+.welcome-icon { color: var(--welcome-icon, #9ca3af); margin-bottom: 4px; }
+
+.welcome-title {
+  font-size: 28px;
+  font-weight: 600;
+  color: var(--welcome-title, #111827);
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+
+.welcome-sub {
+  font-size: 15px;
+  color: var(--welcome-sub, #6b7280);
+  line-height: 1.65;
+}
+
+/* ── Attachment bubbles ───────────────────────────────────────────────── */
+.attachment-bubble {
+  display: flex;
+  justify-content: flex-end;
+  padding: 2px 16px 8px;
+}
+
+.attachment-file,
+.attachment-image-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  background: var(--sidebar-hover, #f3f4f6);
+  border: 1px solid var(--input-border, #d1d5db);
+  border-radius: 10px;
+  font-size: 13px;
+  color: var(--input-text, #374151);
+  text-decoration: none;
+  max-width: 260px;
+  transition: background 0.15s;
+}
+
+.attachment-file:hover,
+.attachment-image-link:hover {
+  background: var(--input-border, #d1d5db);
+}
+
+.attachment-file-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.attachment-thumb {
+  max-width: 180px;
+  max-height: 140px;
+  border-radius: 8px;
+  object-fit: cover;
+  display: block;
+}
+
+/* ── Feedback bar ─────────────────────────────────────────────────────── */
+.feedback-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 18px;
+  font-size: 12px;
+  color: var(--sidebar-text-muted, #9ca3af);
+  border-top: 1px solid var(--footer-border, #e5e7eb);
+  background: var(--footer-bg, #f9fafb);
+  flex-shrink: 0;
+}
+
+.feedback-label { margin-right: 2px; }
+
+.feedback-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--input-border, #d1d5db);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--sidebar-text-muted, #9ca3af);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.feedback-btn:hover {
+  background: var(--sidebar-hover, #f3f4f6);
+  color: var(--input-text, #374151);
+}
+
+.feedback-bar--done {
+  font-style: italic;
+}
+
+/* ── Typing indicator ─────────────────────────────────────────────────── */
+.typing-indicator {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 8px 18px;
+  flex-shrink: 0;
+}
+
+.typing-indicator span:not(.typing-label) {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--typing-dot, #d1d5db);
+  animation: bounce 1.2s infinite ease-in-out;
+}
+
+.typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+.typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+
+.typing-label {
+  font-size: 12px;
+  color: var(--sidebar-text-muted, #9ca3af);
+  margin-left: 4px;
+}
+
+@keyframes bounce {
+  0%, 80%, 100% { transform: scale(0.6); opacity: 0.35; }
+  40%            { transform: scale(1);   opacity: 1;    }
+}

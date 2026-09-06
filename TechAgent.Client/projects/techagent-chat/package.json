@@ -1,0 +1,16 @@
+{
+  "name": "@olemalik/techagent-chat",
+  "version": "1.0.3",
+  "description": "Embeddable Oil & Gas AI chat component powered by TechAgent",
+  "peerDependencies": {
+    "@angular/common": ">=19.0.0",
+    "@angular/core": ">=19.0.0"
+  },
+  "dependencies": {
+    "tslib": "^2.3.0",
+    "@syncfusion/ej2-angular-interactive-chat": "^33.2.15",
+    "@syncfusion/ej2-angular-inputs": "^33.2.15",
+    "@syncfusion/ej2-interactive-chat": "^33.2.15"
+  },
+  "sideEffects": false
+}

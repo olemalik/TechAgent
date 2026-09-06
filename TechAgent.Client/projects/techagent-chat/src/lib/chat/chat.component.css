@@ -1,0 +1,84 @@
+/* ── Library default theme (variables cascade to all descendants) ───────── */
+techagent-chat {
+  display: block;
+  height: 100%;
+  min-height: 500px;
+  --chat-bg: #ffffff;
+  --footer-bg: #f9fafb;
+  --footer-border: #e5e7eb;
+  --welcome-icon: #9ca3af;
+  --welcome-title: #111827;
+  --welcome-sub: #6b7280;
+  --sidebar-hover: #f3f4f6;
+  --input-border: #d1d5db;
+  --input-text: #374151;
+  --sidebar-text-muted: #9ca3af;
+  --typing-dot: #d1d5db;
+  --drop-overlay-bg: rgba(59, 130, 246, 0.08);
+  --drop-overlay-border: rgba(59, 130, 246, 0.5);
+}
+
+/* ── Hide Syncfusion's built-in input footer (we use ta-chat-input) ──────── */
+techagent-chat .e-chat-footer,
+techagent-chat .e-footer {
+  display: none !important;
+}
+
+.chat-container {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  background: var(--chat-bg, #ffffff);
+  transition: background 0.2s;
+}
+
+.message-area {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.chat-footer {
+  flex-shrink: 0;
+  padding: 10px 16px 12px;
+  background: var(--footer-bg, #f9fafb);
+  border-top: 1px solid var(--footer-border, #e5e7eb);
+  transition: background 0.2s;
+}
+
+/* ── Drop overlay ─────────────────────────────────────────────────────── */
+.drop-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 100;
+  background: var(--drop-overlay-bg, rgba(59, 130, 246, 0.08));
+  border: 2.5px dashed var(--drop-overlay-border, rgba(59, 130, 246, 0.5));
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  animation: fadeIn 0.1s ease;
+}
+
+.drop-overlay-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  color: #3b82f6;
+  font-size: 1rem;
+  font-weight: 500;
+  pointer-events: none;
+}
+
+.drop-overlay-inner svg {
+  opacity: 0.85;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}

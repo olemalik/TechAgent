@@ -1,0 +1,73 @@
+<!-- ── RAG mode: Syncfusion Uploader ───────────────────────────────────── -->
+@if (mode === 'rag') {
+  <div class="rag-uploader">
+    <ejs-uploader
+      #uploader
+      [allowedExtensions]="ragAllowed"
+      [maxFileSize]="ragMaxSize"
+      [autoUpload]="true"
+      [multiple]="false"
+      [asyncSettings]="ragAsyncSettings"
+      (beforeUpload)="onBeforeUpload()"
+      (success)="onRagSuccess($event)"
+      (failure)="onRagFailure($event)">
+    </ejs-uploader>
+
+    @if (errorMsg()) {
+      <div class="upload-error">{{ errorMsg() }}</div>
+    }
+  </div>
+}
+
+<!-- ── Chat mode: compact paperclip button ─────────────────────────────── -->
+@if (mode === 'chat') {
+  <div class="chat-attach">
+    <input
+      #chatFileInput
+      type="file"
+      class="hidden-input"
+      accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,image/*"
+      (change)="onChatFileSelected($event)" />
+
+    <button
+      type="button"
+      class="attach-btn"
+      [disabled]="disabled"
+      title="Attach file"
+      (click)="openPicker()">
+      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
+        fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66L9.42 16.41a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+      </svg>
+    </button>
+
+    @if (pendingFile()) {
+      <div class="pending-badge">
+        <span class="pending-icon">
+          @if (isImage(pendingFile()!.type)) {
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24"
+              fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <rect x="3" y="3" width="18" height="18" rx="2"/>
+              <circle cx="8.5" cy="8.5" r="1.5"/>
+              <polyline points="21 15 16 10 5 21"/>
+            </svg>
+          } @else {
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24"
+              fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/>
+              <polyline points="13 2 13 9 20 9"/>
+            </svg>
+          }
+        </span>
+        <span class="pending-name">{{ pendingFile()!.name }}</span>
+        <button type="button" class="remove-btn" title="Remove" (click)="clearPending()">
+          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24"
+            fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+    }
+  </div>
+}

@@ -1,0 +1,12 @@
+{
+  "$schema": "../../node_modules/ng-packagr/ng-package.schema.json",
+  "dest": "../../dist/techagent-chat",
+  "allowedNonPeerDependencies": [
+    "@syncfusion/ej2-angular-interactive-chat",
+    "@syncfusion/ej2-angular-inputs",
+    "@syncfusion/ej2-interactive-chat"
+  ],
+  "lib": {
+    "entryFile": "src/public-api.ts"
+  }
+}

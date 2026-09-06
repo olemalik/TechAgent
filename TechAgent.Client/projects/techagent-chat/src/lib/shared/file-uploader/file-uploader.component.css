@@ -1,0 +1,99 @@
+/* ── RAG mode ───────────────────────────────────────────────────────────── */
+.rag-uploader {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.upload-error {
+  color: var(--error-text);
+  font-size: 0.8rem;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: var(--error-bg);
+  border: 1px solid var(--error-border);
+}
+
+/* ── Chat mode ──────────────────────────────────────────────────────────── */
+.chat-attach {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.hidden-input {
+  display: none;
+}
+
+.attach-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  color: var(--sidebar-text-muted);
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+  flex-shrink: 0;
+}
+
+.attach-btn:hover:not(:disabled) {
+  color: var(--input-text);
+  background: var(--sidebar-hover);
+}
+
+.attach-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ── Pending file badge ─────────────────────────────────────────────────── */
+.pending-badge {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px 3px 6px;
+  border-radius: 16px;
+  background: var(--badge-bg);
+  border: 1px solid var(--badge-border);
+  font-size: 0.78rem;
+  color: var(--badge-text);
+  max-width: 200px;
+}
+
+.pending-icon {
+  display: flex;
+  align-items: center;
+  color: var(--badge-text);
+  flex-shrink: 0;
+}
+
+.pending-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 130px;
+}
+
+.remove-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--sidebar-text-muted);
+  cursor: pointer;
+  border-radius: 50%;
+  flex-shrink: 0;
+  transition: color 0.15s;
+}
+
+.remove-btn:hover {
+  color: var(--error-text);
+}

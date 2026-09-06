@@ -53,7 +53,10 @@ public class RagService : IRagService
         _mcpTools = mcpTools;
         _log = log;
         _minSimilarityScore = config.GetValue<float>("Qdrant:MinSimilarityScore", 0.45f);
+        _supportsFunctionCalling = config.GetValue<bool>("AI:SupportsFunctionCalling", false);
     }
+
+    private readonly bool _supportsFunctionCalling;
 
     public async Task<RagChatResponse> AskAsync(RagChatRequest request, CancellationToken ct = default)
     {
@@ -136,7 +139,7 @@ public class RagService : IRagService
         // System message carries RAG context + instructions; User message carries only the question.
         // Splitting them lets UseFunctionInvocation() middleware cleanly insert tool call/result
         // turns between system context and the question without corrupting the prompt format.
-        var tools = _mcpTools.GetTools();
+        var tools = _supportsFunctionCalling ? _mcpTools.GetTools() : [];
         var options = tools.Count > 0
             ? new ChatOptions { Tools = [..tools] }
             : null;
@@ -241,7 +244,7 @@ public class RagService : IRagService
             .AsNoTracking()
             .ToListAsync(ct);
 
-        var streamTools = _mcpTools.GetTools();
+        var streamTools = _supportsFunctionCalling ? _mcpTools.GetTools() : [];
         var streamOptions = streamTools.Count > 0
             ? new ChatOptions { Tools = [..streamTools] }
             : null;
@@ -277,6 +280,15 @@ public class RagService : IRagService
     {
         var system = new StringBuilder();
 
+        // Role boundary — must come first so it takes priority over everything below
+        system.AppendLine("You are an Oil & Gas specialist AI assistant.");
+        system.AppendLine("You ONLY answer questions related to the oil and gas industry, including: drilling, production, reservoir engineering, pipelines, refining, HSE, petrochemicals, and energy markets.");
+        system.AppendLine("If the user sends a greeting (such as 'hi', 'hello', 'good morning', 'hey', etc.), respond warmly and invite them to ask an Oil & Gas related question. For example: \"Hello! Welcome to the Oil & Gas AI Assistant. How can I help you today? Feel free to ask me anything about drilling, production, reservoir engineering, pipelines, HSE, or refining!\"");
+        system.AppendLine("If the user asks about anything outside Oil & Gas topics — such as finance, gold, stocks, general science, coding, or any other unrelated subject — respond ONLY with:");
+        system.AppendLine("\"My apologies, but I'm only able to assist with Oil & Gas related topics. I'd be happy to help you with questions about drilling, production, reservoir engineering, pipelines, HSE, or refining. Please feel free to ask anything within those areas!\"");
+        system.AppendLine("Do not attempt to answer off-topic questions, even partially.");
+        system.AppendLine();
+
         // 0. Few-shot golden examples
         if (goldenPairs.Count > 0)
         {
@@ -298,12 +310,11 @@ public class RagService : IRagService
                 system.AppendLine("---");
             }
             system.AppendLine("[CONTEXT END]");
-            system.AppendLine("Use the context above to answer the Oil & Gas question accurately.");
-            system.AppendLine("If the context does not contain the answer, say so clearly and use any available tools to find the information. Never fabricate.");
+            system.AppendLine("Use the context above to answer the Oil & Gas question accurately. If the context does not contain the answer, say so clearly. Never fabricate.");
         }
         else
         {
-            system.AppendLine("No document context available. Use your Oil & Gas training knowledge and any available tools to answer accurately.");
+            system.AppendLine("No document context available. Answer using your Oil & Gas domain knowledge. Never fabricate.");
         }
 
         // 2. Conversation history

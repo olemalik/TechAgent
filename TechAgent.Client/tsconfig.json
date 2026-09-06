@@ -16,12 +16,25 @@
     "moduleResolution": "bundler",
     "importHelpers": true,
     "target": "ES2022",
-    "module": "ES2022"
+    "module": "ES2022",
+    "paths": {
+      "techagent-chat": [
+        "./dist/techagent-chat"
+      ]
+    }
   },
   "angularCompilerOptions": {
     "enableI18nLegacyMessageIdFormat": false,
     "strictInjectionParameters": true,
     "strictInputAccessModifiers": true,
     "strictTemplates": true
-  }
+  },
+  "references": [
+    {
+      "path": "./projects/techagent-chat/tsconfig.lib.json"
+    },
+    {
+      "path": "./projects/techagent-chat/tsconfig.spec.json"
+    }
+  ]
 }
